@@ -8,11 +8,18 @@ const redisConfig = {
 const redisClient = new Redis(redisConfig);
 
 async function setCurrentEpoch(value: number) {
+  // try {
+  //   await redisClient.set('current_epoch', value);
+  //   console.log(`Set current_epoch to ${value}`);
+  // } catch (err) {
+  //   console.error('Error setting current_epoch:', err);
+  // }
+
   try {
-    await redisClient.set('current_epoch', value);
-    console.log(`Set current_epoch to ${value}`);
+    let e = await redisClient.get('current_epoch');
+    console.log(e);
   } catch (err) {
-    console.error('Error setting current_epoch:', err);
+    console.error('', err);
   }
 }
 

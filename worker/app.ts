@@ -6,8 +6,14 @@ import { PublicKey } from "@solana/web3.js";
 import { BN } from "bn.js";
 import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
-const connection = new Connection(clusterApiUrl("mainnet-beta"));
-const mintAddress = "Dicscx2kpukGBATbjgsuzdbsVRFktV19BXEHofPQwEQF";
+// https://old-nameless-bridge.solana-mainnet.quiknode.pro/6fdc470238c40c1c9c3754ed5035c71e0a9b0267
+// BFWuL6dfwvGc4bQcPYFi7uEnaVMEddvhxwgSiLZzSNfb
+// Dicscx2kpukGBATbjgsuzdbsVRFktV19BXEHofPQwEQF
+
+// 59x5bh8dkGNsVPe5zNZQHiGsjpYnRxHVG6bdNoeUBxi6Dr7grsnkWdD4cMVHNNRMghysRKPBLJg4wYvqEbtrRpMq
+
+const connection = new Connection(clusterApiUrl("devnet"));
+const mintAddress = "BFWuL6dfwvGc4bQcPYFi7uEnaVMEddvhxwgSiLZzSNfb";
 
 const mongoUrl = "mongodb://localhost:27017";
 const client = new MongoClient(mongoUrl);
@@ -270,26 +276,31 @@ async function startQueue() {
   }
 }
 
-startQueue();
+// startQueue();
 
-// Graceful shutdown
-process.on("SIGINT", () => {
-  console.log("Closing Redis connections...");
-  subClient.quit();
-  getClient.quit();
-  process.exit();
-});
+// // Graceful shutdown
+// process.on("SIGINT", () => {
+//   console.log("Closing Redis connections...");
+//   subClient.quit();
+//   getClient.quit();
+//   process.exit();
+// });
 
-// Repeating Job Enqueuer
-// (async () => {
-//   console.log("Enqueuing init job");
-//   await jobQueue.add("jobQueue", { type: "init" }, {lifo: true});
-// })();
+// // Repeating Job Enqueuer
+// // (async () => {
+// //   console.log("Enqueuing init job");
+// //   await jobQueue.add("jobQueue", { type: "init" }, {lifo: true});
+// // })();
 
-// every 5 minutes send a epoch job to the queue
-setInterval(async () => {
-  console.log("Enqueuing epochCheck job");
-  await jobQueue.add("jobQueue", { type: "epochCheck" });
-}, 1000);
+// // every 5 minutes send a epoch job to the queue
+// setInterval(async () => {
+//   console.log("Enqueuing epochCheck job");
+//   await jobQueue.add("jobQueue", { type: "epochCheck" });
+// }, 1000);
 
-console.log("Queue worker is running...");
+// console.log("Queue worker is running...");
+
+console.log('AAA')
+
+let e = await takeSnapshot()
+console.log(e
