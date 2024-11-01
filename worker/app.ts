@@ -3,21 +3,14 @@ import Queue from "bull";
 import { MongoClient } from "mongodb";
 import { PublicKey } from "@solana/web3.js";
 import { AccountLayout, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, createTransferInstruction, getAccount } from "@solana/spl-token";
-import bs58 from 'bs58'
+import bs58 from 'bs58';
+import * as dotenv from 'dotenv';
 
-// https://old-nameless-bridge.solana-mainnet.quiknode.pro/6fdc470238c40c1c9c3754ed5035c71e0a9b0267
-// BFWuL6dfwvGc4bQcPYFi7uEnaVMEddvhxwgSiLZzSNfb
-// Dicscx2kpukGBATbjgsuzdbsVRFktV19BXEHofPQwEQF
+dotenv.config()
 
-// 59x5bh8dkGNsVPe5zNZQHiGsjpYnRxHVG6bdNoeUBxi6Dr7grsnkWdD4cMVHNNRMghysRKPBLJg4wYvqEbtrRpMq
-// vote account
-//4qvFxnUXYjBdcviCwVV7gKcGJMCENEBfS82hSLJUhyvu
-
-const connection = new Connection('https://api.mainnet-beta.solana.com'); 
-const mintAddress = "BFWuL6dfwvGc4bQcPYFi7uEnaVMEddvhxwgSiLZzSNfb";
-
-const mongoUrl = "mongodb://localhost:27017";
-const client = new MongoClient(mongoUrl);
+const connection = new Connection(process.env.RPC); 
+const mintAddress = process.env.MINT_ADDRESS;
+const client = new MongoClient(process.env.MONGO);
 
 interface Epoch{
   number: number;
@@ -91,6 +84,8 @@ async function getCurrentEpoch(): Promise<Epoch> {
     number: epochInfo.epoch,
     progress: Math.round((epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100)
   }
+
+  console.log(epoch)
   return epoch;
 }
 
@@ -189,10 +184,9 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
   return players;
 }
 
-async function getValidatorRewards(epoch: number) { 
-  const validatorPubKey = '4qvFxnUXYjBdcviCwVV7gKcGJMCENEBfS82hSLJUhyvu';
-  
-  const rewards = await connection.getInflationReward([new PublicKey(validatorPubKey)], epoch); 
+async function getValidatorRewards(epoch: number) {
+  console.log('GET REWARDS')
+  const rewards = await connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS)], epoch); 
 
   if (rewards) { 
     return rewards; 
@@ -203,8 +197,9 @@ async function getValidatorRewards(epoch: number) {
 
 async function sendWinnings(recipient: string, amount: number): Promise<string> {
   console.log('SEND WINNINGS')
+  // TODO use mainnet global connection
   const connection = new Connection(clusterApiUrl("devnet"));
-  const secret = bs58.decode('PRIVATEKEY HEX')
+  const secret = bs58.decode(process.env.SECRET)
   const keyPair = Keypair.fromSecretKey(new Uint8Array(Array.from(secret)));
   
   let sourceAccount = await getOrCreateAssociatedTokenAccount(
