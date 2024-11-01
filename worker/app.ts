@@ -3,6 +3,7 @@ import Queue from "bull";
 import { MongoClient } from "mongodb";
 import { PublicKey } from "@solana/web3.js";
 import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { NumericLiteral } from "typescript";
 
 // https://old-nameless-bridge.solana-mainnet.quiknode.pro/6fdc470238c40c1c9c3754ed5035c71e0a9b0267
 // BFWuL6dfwvGc4bQcPYFi7uEnaVMEddvhxwgSiLZzSNfb
@@ -26,15 +27,17 @@ interface Epoch{
 interface Player {
   address: string;
   startedAt: number;
+  oldBalance: number;
   balance: number;
+  score: number;
 }
 
 interface Round {
   epoch: number
-  winner: string;
+  winner: string|null;
   players: Player[];
   pot: number;
-  tx: string;
+  tx: string|null;
   createdAt: Date;
   updatedAt: Date;
   status: string;
@@ -51,29 +54,31 @@ async function run() {
 
     round = await getRound(epoch.number)
   } else {
-    const updatedPlayerList = players.map((player: Player) => {
-      const existingPlayer = round?.players.filter(oldPlayer => {
-        if(player.address !== oldPlayer.address) {
-          return player;
-        }
+    players.forEach((newPlayer: Player) => {
+      const existingPlayer = round?.players.find((player: Player) => player.address === newPlayer.address);
+  
+      if (existingPlayer) {
+          existingPlayer.oldBalance = existingPlayer.balance;
+          existingPlayer.balance = newPlayer.balance;
+      } else {
+          round?.players.push(newPlayer);
+      }
+  });
 
-        return oldPlayer;
-      })
-    })
-    //check for new players
-    // update existing players
+    round.players = await updateScores(round.players);
 
+    updateRound(round);
   }
 
   console.log(round)
 
 }
 
-async function getRound(epochNumber) {
+async function getRound(epoch: number) {
   const db = client.db("lottos");
   const collection = db.collection("rounds");
 
-  return await collection.findOne({ epoch: epochNumber });
+  return await collection.findOne({ epoch: epoch });
 }
 
 async function getCurrentEpoch(): Promise<Epoch> {
@@ -89,29 +94,36 @@ async function getCurrentEpoch(): Promise<Epoch> {
 
 // functions that help jobs
 async function createRound(epoch: number, players: Array<Player>) {
-  console.log('Create round')
+  console.log('CREATE ROUND')
   const db = client.db("lottos");
   const collection = db.collection("rounds");
 
-  let newRound = {
+  const round: Round = {
     epoch,
     winner: null,
     players,
     pot: 0,
-    txid: null,
+    tx: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     status: "pending",
   };
 
-  return await collection.insertOne(newRound);
+  return await collection.insertOne(round);
 }
 
-async function updateRound(round:Round) {
+async function updateScores(players: Player[]) {
+  // if start - end > 50 eligible
+  // if start -
+  return players;
+}
+
+async function updateRound(round) {
+  console.log('UPDATE ROUND')
   const db = client.db("lottos");
   const collection = db.collection("rounds");
 
-  await collection.findOneAndUpdate({ epoch: round.epoch }, round) 
+  await collection.updateOne({ _id: round._id }, {$set: round}) 
 }
 
 async function pullWinner(epoch: number) {
@@ -161,18 +173,19 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
 
       let player: Player = {
         address: account.pubkey.toString(),
+        oldBalance: 0,
         balance: Number(accountData.amount) / (10 ** 9),
-        startedAt: epoch.progress 
+        startedAt: epoch.progress,
+        score: epoch.progress
       };
 
       return player
     })
     .filter((player) => player.balance !== 0);
 
-
-  console.log(players)
   return players;
 }
+
 async function getValidatorRewards(epoch: number) { 
   const validatorPubKey = '4qvFxnUXYjBdcviCwVV7gKcGJMCENEBfS82hSLJUhyvu';
   
@@ -184,6 +197,7 @@ async function getValidatorRewards(epoch: number) {
 
   else throw new Error('Rewards not found');
 }
+
 
 
 run().then(()=> {
