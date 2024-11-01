@@ -1,6 +1,9 @@
 
 frontend/nodes_modules
 worker/node_modules
+commands.txt
+.ENV
+.env
 
 # Node.js
 node_modules/

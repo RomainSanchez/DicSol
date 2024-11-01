@@ -1,9 +1,7 @@
-import { clusterApiUrl, Connection, EpochInfo } from "@solana/web3.js";
+import { clusterApiUrl, Connection, EpochInfo, EpochSchedule } from "@solana/web3.js";
 import Queue from "bull";
-import Redis from "ioredis";
 import { MongoClient } from "mongodb";
 import { PublicKey } from "@solana/web3.js";
-import { BN } from "bn.js";
 import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 // https://old-nameless-bridge.solana-mainnet.quiknode.pro/6fdc470238c40c1c9c3754ed5035c71e0a9b0267
@@ -11,88 +9,109 @@ import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 // Dicscx2kpukGBATbjgsuzdbsVRFktV19BXEHofPQwEQF
 
 // 59x5bh8dkGNsVPe5zNZQHiGsjpYnRxHVG6bdNoeUBxi6Dr7grsnkWdD4cMVHNNRMghysRKPBLJg4wYvqEbtrRpMq
+// vote account
+//4qvFxnUXYjBdcviCwVV7gKcGJMCENEBfS82hSLJUhyvu
 
-const connection = new Connection(clusterApiUrl("devnet"));
+const connection = new Connection('https://api.mainnet-beta.solana.com'); 
 const mintAddress = "BFWuL6dfwvGc4bQcPYFi7uEnaVMEddvhxwgSiLZzSNfb";
 
 const mongoUrl = "mongodb://localhost:27017";
 const client = new MongoClient(mongoUrl);
 
-const redisConfig = {
-  host: "127.0.0.1",
-  port: 6379,
-};
-
-interface JobData {
-  type: string;
-  data: any;
+interface Epoch{
+  number: number;
+  progress: number
 }
 
-interface PlayerAmounts {
-  [address: string]: number;
+interface Player {
+  address: string;
+  startedAt: number;
+  balance: number;
 }
 
-// Create two Redis clients: one for subscribing and one for getting values
-const subClient = new Redis(redisConfig);
-const getClient = new Redis(redisConfig);
-const setClient = new Redis(redisConfig);
-subClient.config("SET", "notify-keyspace-events", "KEA");
+interface Round {
+  epoch: number
+  winner: string;
+  players: Player[];
+  pot: number;
+  tx: string;
+  createdAt: Date;
+  updatedAt: Date;
+  status: string;
+}
 
-// Subscribe to the keyspace notifications for the specified key
-const keyToMonitor = "current_epoch";
-const channel = `__keyspace@0__:${keyToMonitor}`;
+async function run() {
+  const epoch: Epoch = await getCurrentEpoch()
+  const players: Player[] =  await getPlayers(epoch);
+  
+  let round = await getRound(epoch.number);
 
-// Listen for messages
-subClient.on("message", async (channel, message) => {
-  console.log(`Key '${keyToMonitor}' was modified. Operation: ${message}`);
-  // if (message === "set") {
-  //   try {
-  //     const newValue = await getClient.get(keyToMonitor);
-  //     console.log(`New value: ${newValue}`);
+  if (!round) {
+    await createRound(epoch.number, players)
 
-  //     const db = client.db("lottos");
-  //     const collection = db.collection("rounds");
-  //     const epoch = await collection.findOne({ epoch: { $gte: newValue } });
-  //     if (!epoch) {
+    round = await getRound(epoch.number)
+  } else {
+    const updatedPlayerList = players.map((player: Player) => {
+      const existingPlayer = round?.players.filter(oldPlayer => {
+        if(player.address !== oldPlayer.address) {
+          return player;
+        }
 
-  //       console.log("New epoch detected pull winner for epoch:", Number(newValue)-1);
-  //       await pullWinner(Number(newValue)-1);
-  //       const players = await takeSnapshot();
-  //       await insertNewRound(Number(newValue), players);
-  //     } else {
-  //       console.log("Epoch already exists");
-  //     }
-  //     client.close();
-  //   } catch (err) {
-  //     console.error('Error getting new value:', err);
-  //   }
-  // }
-});
+        return oldPlayer;
+      })
+    })
+    //check for new players
+    // update existing players
 
-// Handle errors
-subClient.on("error", (err) => console.error("Redis subscription error:", err));
-getClient.on("error", (err) => console.error("Redis client error:", err));
+  }
 
-// functions that help jobs
-async function insertNewRound(epoch: number, players: PlayerAmounts) {
+  console.log(round)
+
+}
+
+async function getRound(epochNumber) {
   const db = client.db("lottos");
   const collection = db.collection("rounds");
-  const round = await collection.findOne({ epoch: epoch });
-  if (!round) {
-    let newRound = {
-      epoch: epoch,
-      winner: null,
-      players: {},
-      pot: 0,
-      txid: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      status: "pending",
-    };
-    await collection.insertOne(newRound);
-  } else {
-    console.log("Epoch already exists");
+
+  return await collection.findOne({ epoch: epochNumber });
+}
+
+async function getCurrentEpoch(): Promise<Epoch> {
+  const epochInfo: EpochInfo = await connection.getEpochInfo();
+
+  const epoch: Epoch = 
+  {
+    number: epochInfo.epoch,
+    progress: Math.round((epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100)
   }
+  return epoch;
+}
+
+// functions that help jobs
+async function createRound(epoch: number, players: Array<Player>) {
+  console.log('Create round')
+  const db = client.db("lottos");
+  const collection = db.collection("rounds");
+
+  let newRound = {
+    epoch,
+    winner: null,
+    players,
+    pot: 0,
+    txid: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status: "pending",
+  };
+
+  return await collection.insertOne(newRound);
+}
+
+async function updateRound(round:Round) {
+  const db = client.db("lottos");
+  const collection = db.collection("rounds");
+
+  await collection.findOneAndUpdate({ epoch: round.epoch }, round) 
 }
 
 async function pullWinner(epoch: number) {
@@ -117,190 +136,55 @@ async function pullWinner(epoch: number) {
   }
 }
 
-async function takeSnapshot() {
-  // check for the round data first
+async function getPlayers(epoch: Epoch): Promise<Player[]> {
+  console.log('GET PLAYERS')
+  // TODO use mainnet global connection
+  const connection = new Connection(clusterApiUrl("devnet"));
   const mint = new PublicKey(mintAddress);
   const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
     filters: [
       {
-        dataSize: 165, // size of account (bytes)
+        dataSize: 165,
       },
       {
         memcmp: {
-          offset: 0, // location of our query in the account (bytes)
-          bytes: mint.toBase58(), // our search criteria, a base58 encoded string
+          offset: 0,
+          bytes: mint.toBase58(),
         },
       },
     ],
   });
 
-  const nonZeroHolders = accounts
+  const players = accounts
     .map((account) => {
       const accountData = AccountLayout.decode(account.account.data);
-      const amount = new BN(accountData.amount.toString(), "le");
 
-      return {
+      let player: Player = {
         address: account.pubkey.toString(),
-        amount: Number(amount.toString()) * 100,
+        balance: Number(accountData.amount) / (10 ** 9),
+        startedAt: epoch.progress 
       };
-    })
-    .filter((holder) => holder.amount !== 0);
 
-  const players = nonZeroHolders.reduce<PlayerAmounts>((acc, player) => {
-    acc[player.address] = Number(player.amount);
-    return acc;
-  }, {});
+      return player
+    })
+    .filter((player) => player.balance !== 0);
+
+
+  console.log(players)
   return players;
 }
+async function getValidatorRewards(epoch: number) { 
+  const validatorPubKey = '4qvFxnUXYjBdcviCwVV7gKcGJMCENEBfS82hSLJUhyvu';
+  
+  const rewards = await connection.getInflationReward([new PublicKey(validatorPubKey)], epoch); 
 
-const jobQueue = new Queue("jobQueue", {
-  redis: redisConfig,
-});
-
-async function startQueue() {
-  // SYSTEM WIDE INIT
-
-  console.log("Welcome to the queue worker");
-  // get current epoch from solana and completition percentage
-  const epochInfo: EpochInfo = await connection.getEpochInfo();
-  console.log("Epoch Info: ", epochInfo);
-  let epoch_completed_percent =
-    (epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100;
-  try {
-    await setClient.set("current_epoch", epochInfo.epoch);
-    await setClient.set(
-      "epoch_completion_percent",
-      Math.round(epoch_completed_percent)
-    );
-    console.log(`Set current_epoch to ${epochInfo.epoch}`);
-    console.log(
-      `Set epoch_completion_percent to ${Math.round(epoch_completed_percent)}`
-    );
-  } catch (err) {
-    console.error("Error setting epoch data in Redis:", err);
+  if (rewards) { 
+    return rewards; 
   }
 
-  // check if exists in mongo
-  const db = client.db("lottos");
-  const collection = db.collection("rounds");
-  const round = await collection.findOne({ epoch: epochInfo.epoch });
-  if (!round) {
-    console.log("No round found, creating new round");
-    // create new round in db
-    console.log("Taking snapshot of token holders");
-    const players = await takeSnapshot();
-    console.log("Inserting new round into database");
-    await insertNewRound(epochInfo.epoch, players);
-  }
-
-  // Subscribe to the keyspace notifications for the specified key
-  console.log("Subscribing to keyspace notifications");
-  subClient.subscribe(channel, (err, count) => {
-    if (err) {
-      console.error("Failed to subscribe:", err);
-    } else {
-      console.log(
-        `Subscribed successfully! Monitoring changes to key: ${keyToMonitor}`
-      );
-    }
-  });
-
-  console.log("Starting job processing");
-  // Process jobs in the queue
-  jobQueue.process(async (job) => {
-    try {
-      console.log(`Processing job with id ${job.id}`);
-      // Add your job processing logic here
-      // For example, you can call a function to handle the job
-      await handleJob(job.data);
-      console.log(`Job with id ${job.id} completed successfully`);
-    } catch (error) {
-      console.error(`Job with id ${job.id} failed: ${error.message}`);
-    }
-  });
-  async function handleJob(data: JobData) {
-    // Implement your job handling logic here
-    console.log("Handling job with data:", data);
-
-    if (data.type === "epochCheck") {
-      console.log("This is an epoch check job");
-      // get current epoch from solana and completition percentage
-      const epochInfo: EpochInfo = await connection.getEpochInfo();
-      console.log("Epoch Info: ", epochInfo);
-      let epoch_completed_percent =
-        (epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100;
-
-      try {
-        await setClient.set("current_epoch", epochInfo.epoch);
-        await setClient.set(
-          "epoch_completion_percent",
-          Math.round(epoch_completed_percent)
-        );
-        console.log(`Set current_epoch to ${epochInfo.epoch}`);
-        console.log(
-          `Set epoch_completion_percent to ${Math.round(
-            epoch_completed_percent
-          )}`
-        );
-      } catch (err) {
-        console.error("Error setting epoch data in Redis:", err);
-      }
-
-      // compare to current epoch in db
-      // if current epoch is greater than db then epoch is over
-      // Update the db with the new epoch - this triggers a pull winner job
-    }
-
-    if (data.type === "webhookEvent") {
-      const epoch_completed_percent = await getClient.get(
-        "epoch_completed_percent"
-      );
-      const points_multiplier = Number(epoch_completed_percent) * 100;
-      console.log("This is a webhook event job");
-      for (const event of data.data) {
-        console.log("owner:", event.accountOwner);
-        console.log("amount:", event.amount);
-        if (event.amount > 0) {
-          console.log("pointsAdded");
-          const points = event.amount * points_multiplier;
-          console.log("points:", points);
-          // TO DO add points to user in db
-        } else {
-          console.log("pointsSubtracted");
-          const points = event.amount;
-          console.log("points:", points);
-          // TO DO subtract points from user in db
-        }
-      }
-    }
-  }
+  else throw new Error('Rewards not found');
 }
 
-// startQueue();
 
-// // Graceful shutdown
-// process.on("SIGINT", () => {
-//   console.log("Closing Redis connections...");
-//   subClient.quit();
-//   getClient.quit();
-//   process.exit();
-// });
-
-// // Repeating Job Enqueuer
-// // (async () => {
-// //   console.log("Enqueuing init job");
-// //   await jobQueue.add("jobQueue", { type: "init" }, {lifo: true});
-// // })();
-
-// // every 5 minutes send a epoch job to the queue
-// setInterval(async () => {
-//   console.log("Enqueuing epochCheck job");
-//   await jobQueue.add("jobQueue", { type: "epochCheck" });
-// }, 1000);
-
-// console.log("Queue worker is running...");
-
-console.log('AAA')
-
-let e = await takeSnapshot()
-console.log(e
+run().then(()=> {
+})
