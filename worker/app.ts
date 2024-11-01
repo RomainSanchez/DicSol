@@ -1,9 +1,9 @@
-import { clusterApiUrl, Connection, EpochInfo, EpochSchedule } from "@solana/web3.js";
+import { clusterApiUrl, Connection, EpochInfo, Keypair, Transaction, sendAndConfirmTransaction, SystemProgram, ParsedAccountData } from "@solana/web3.js";
 import Queue from "bull";
 import { MongoClient } from "mongodb";
 import { PublicKey } from "@solana/web3.js";
-import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { NumericLiteral } from "typescript";
+import { AccountLayout, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, createTransferInstruction, getAccount } from "@solana/spl-token";
+import bs58 from 'bs58'
 
 // https://old-nameless-bridge.solana-mainnet.quiknode.pro/6fdc470238c40c1c9c3754ed5035c71e0a9b0267
 // BFWuL6dfwvGc4bQcPYFi7uEnaVMEddvhxwgSiLZzSNfb
@@ -53,6 +53,8 @@ async function run() {
     await createRound(epoch.number, players)
 
     round = await getRound(epoch.number)
+
+    endRound(round)
   } else {
     players.forEach((newPlayer: Player) => {
       const existingPlayer = round?.players.find((player: Player) => player.address === newPlayer.address);
@@ -98,11 +100,13 @@ async function createRound(epoch: number, players: Array<Player>) {
   const db = client.db("lottos");
   const collection = db.collection("rounds");
 
+  const pot = await getJackpot()
+
   const round: Round = {
     epoch,
     winner: null,
     players,
-    pot: 0,
+    pot,
     tx: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -110,6 +114,10 @@ async function createRound(epoch: number, players: Array<Player>) {
   };
 
   return await collection.insertOne(round);
+}
+
+async function getJackpot(): Promise<number> {
+  return 2;
 }
 
 async function updateScores(players: Player[]) {
@@ -126,26 +134,21 @@ async function updateRound(round) {
   await collection.updateOne({ _id: round._id }, {$set: round}) 
 }
 
-async function pullWinner(epoch: number) {
-  const db = client.db("lottos");
-  const collection = db.collection("rounds");
-  const round = await collection.findOne({ epoch: epoch });
-  if (round) {
-    if (!round.winner) {
-      // we dont alread have a winner, lets find one
-      // get all players from round
-      const players = round.players;
-      console.log("Players:", players);
+async function endRound(round) {
+  if (!round.winner) {
+    const winner = pullWinner(round.players);
 
-      // TO DO FINISH THIS
-
-      // Add your additional logic here
-    } else {
-      console.log("Winner already exists:", round.winner);
+    if(winner) {
+      round.tx = await sendWinnings(winner.address, round.pot);
+      round.winner = winner.address;
     }
-  } else {
-    console.log("Epoch not found");
+
+    round.status = "ended"
   }
+}
+
+function pullWinner(players: Player[]): Player {
+  return players[1];
 }
 
 async function getPlayers(epoch: Epoch): Promise<Player[]> {
@@ -198,7 +201,45 @@ async function getValidatorRewards(epoch: number) {
   else throw new Error('Rewards not found');
 }
 
+async function sendWinnings(recipient: string, amount: number): Promise<string> {
+  console.log('SEND WINNINGS')
+  const connection = new Connection(clusterApiUrl("devnet"));
+  const secret = bs58.decode('PRIVATEKEY HEX')
+  const keyPair = Keypair.fromSecretKey(new Uint8Array(Array.from(secret)));
+  
+  let sourceAccount = await getOrCreateAssociatedTokenAccount(
+    connection, 
+    keyPair,
+    new PublicKey(mintAddress),
+    keyPair.publicKey
+  );
+
+  let destinationAccount = await getAccount(
+    connection, 
+    new PublicKey(recipient)
+  );
+
+  const tx = new Transaction();
+  
+  tx.add(createTransferInstruction(
+      sourceAccount.address,
+      destinationAccount.address,
+      keyPair.publicKey,
+      amount * Math.pow(10, 9),
+  ))
+
+  const latestBlockHash = await connection.getLatestBlockhash('confirmed');
+  tx.recentBlockhash = await latestBlockHash.blockhash;    
+  const signature = await sendAndConfirmTransaction(connection,tx,[keyPair]);
+  console.log(
+      '\x1b[32m', //Green Text
+      `   Transaction Success!🎉`,
+      `\n    https://explorer.solana.com/tx/${signature}?cluster=devnet`
+  );
+
+  return signature;
+}
 
 
-run().then(()=> {
-})
+
+run().then()
