@@ -33,7 +33,7 @@ interface Round {
   tx: string|null;
   createdAt: Date;
   updatedAt: Date;
-  status: string;
+  ended: boolean;
 }
 
 async function run() {
@@ -47,7 +47,7 @@ async function run() {
 
     round = await getRound(epoch.number)
 
-    endRound(round)
+    endRound(epoch.number - 1)
   } else {
     players.forEach((newPlayer: Player) => {
       const existingPlayer = round?.players.find((player: Player) => player.address === newPlayer.address);
@@ -95,7 +95,7 @@ async function createRound(epoch: number, players: Array<Player>) {
   const db = client.db("lottos");
   const collection = db.collection("rounds");
 
-  const pot = await getJackpot()
+  const pot = await getJackpot(epoch - 1)
 
   const round: Round = {
     epoch,
@@ -105,13 +105,14 @@ async function createRound(epoch: number, players: Array<Player>) {
     tx: null,
     createdAt: new Date(),
     updatedAt: new Date(),
-    status: "pending",
+    ended: false,
   };
 
   return await collection.insertOne(round);
 }
 
-async function getJackpot(): Promise<number> {
+async function getJackpot(epoch: number): Promise<number> {
+  const rewards = getValidatorRewards(epoch)
   return 2;
 }
 
@@ -126,10 +127,14 @@ async function updateRound(round) {
   const db = client.db("lottos");
   const collection = db.collection("rounds");
 
+  round.updatedAt = new Date();
+
   await collection.updateOne({ _id: round._id }, {$set: round}) 
 }
 
-async function endRound(round) {
+async function endRound(epoch: number) {
+  const round = await getRound(epoch);
+  
   if (!round.winner) {
     const winner = pullWinner(round.players);
 
@@ -138,7 +143,9 @@ async function endRound(round) {
       round.winner = winner.address;
     }
 
-    round.status = "ended"
+    round.ended = true;
+
+    await updateRound(round);
   }
 }
 
@@ -187,7 +194,7 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
 async function getValidatorRewards(epoch: number) {
   console.log('GET REWARDS')
   const rewards = await connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS)], epoch); 
-
+console.log(rewards)
   if (rewards) { 
     return rewards; 
   }
@@ -237,4 +244,5 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
 
 
 
-run().then()
+// run().then()
+getJackpot(691)
