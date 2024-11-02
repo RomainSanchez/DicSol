@@ -1,5 +1,5 @@
-import { clusterApiUrl, Connection, EpochInfo, Keypair, Transaction, sendAndConfirmTransaction, SystemProgram, ParsedAccountData } from "@solana/web3.js";
-import { MongoClient, WithId } from "mongodb";
+import { clusterApiUrl, Connection, EpochInfo, Keypair, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { MongoClient } from "mongodb";
 import { PublicKey } from "@solana/web3.js";
 import { AccountLayout, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, createTransferInstruction, getAccount } from "@solana/spl-token";
 import bs58 from 'bs58';
@@ -323,8 +323,9 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
 }
 
 
-// Schedule a job to run at the start of every hour
+
 // every hour '0 * * * *'
+// every 30 seconds '*/30 * * * * *'
 const job = schedule.scheduleJob('*/30 * * * * *', async () => {
   run()
 });

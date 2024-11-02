@@ -5,6 +5,8 @@ commands.txt
 .ENV
 .env
 
+api/.vscode
+
 # Node.js
 node_modules/
 
