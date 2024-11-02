@@ -1,13 +1,17 @@
-const { Router } = require('express')
-const { MongoClient } = require('mongodb');
-require('dotenv').config();
 
-const client = new MongoClient(process.env.MONGO);
+import { Request, Response } from "express";
+import { Router } from "express";
+import { MongoClient } from "mongodb";
+import dotenv from "dotenv";
 
+dotenv.config();
+
+const mongoUrl = process.env.MONGO
+const client = new MongoClient(mongoUrl ? mongoUrl: '');
 
 const router = Router()
 
-router.get('/rounds', async (req, res) => {
+router.get('/rounds', async (req: Request, res: Response) => {
     
     try {
         const db = client.db("lottos");
@@ -16,7 +20,7 @@ router.get('/rounds', async (req, res) => {
         const rounds = await collection.find({}).sort({_id:1}).limit(20).toArray();
 
         res.status(200).json(rounds)
-    } catch (error) {
+    } catch (error: any) {
         res.status(500).json({ message: error.message })
     }
 })
