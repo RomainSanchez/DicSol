@@ -1,10 +1,11 @@
 import { clusterApiUrl, Connection, EpochInfo, Keypair, Transaction, sendAndConfirmTransaction, SystemProgram, ParsedAccountData } from "@solana/web3.js";
-import Queue from "bull";
 import { MongoClient, WithId } from "mongodb";
 import { PublicKey } from "@solana/web3.js";
 import { AccountLayout, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, createTransferInstruction, getAccount } from "@solana/spl-token";
 import bs58 from 'bs58';
 import * as dotenv from 'dotenv';
+import schedule from 'node-schedule';
+
 
 dotenv.config()
 
@@ -19,7 +20,8 @@ interface Epoch{
 
 interface Player {
   address: string;
-  startedAt: number;
+  enteredAt: number;
+  exitedAt: number;
   oldBalance: number;
   balance: number;
   score: number;
@@ -35,6 +37,11 @@ interface Round {
   createdAt: Date;
   updatedAt: Date;
   ended: boolean;
+}
+
+interface Ticket {
+  owner: string;
+  number: number;
 }
 
 async function run() {
@@ -65,9 +72,9 @@ async function run() {
       }
   });
 
-    round.players = await updateScores(round.players);
+  round.players = await updateScores(epoch.progress, round.players);
 
-    updateRound(round);
+  updateRound(round);
   }
 
   console.log(round)
@@ -135,7 +142,7 @@ async function getJackpot(epoch: number, previousPot: number|null ): Promise<num
     }
   }
 
-  return pot;
+  return Number(pot.toFixed(9));
 }
 
 async function getOdds(previousOdds: number | null, hadWinner: boolean) {
@@ -147,14 +154,19 @@ async function getOdds(previousOdds: number | null, hadWinner: boolean) {
   
 }
 
-async function updateScores(players: Player[]) {
+async function updateScores(epochProgress: number, players: Player[]) {
   players.forEach((player: Player) => {
     let newScore;
 
-    // if(pl)
+    if(player.balance < 1) {
+      if(player.oldBalance > 0) {
+        player.exitedAt = epochProgress;
+      }
+      
+      player.score = 0;
+    }
   })
-  // if start - end > 50 eligible
-  // if start -
+ 
   return players;
 }
 
@@ -170,11 +182,11 @@ async function updateRound(round) {
 
 async function endRound(round) {
   if (!round.winner) {
-    const winner = pullWinner(round.players);
+    const winner = pullWinner(round.players, round.pot, round.odds);
 
     if(winner) {
-      round.tx = await sendWinnings(winner.address, round.pot);
-      round.winner = winner.address;
+      round.tx = await sendWinnings(winner, round.pot);
+      round.winner = winner;
     }
 
     round.ended = true;
@@ -183,8 +195,41 @@ async function endRound(round) {
   }
 }
 
-function pullWinner(players: Player[]): Player {
-  return players[1];
+function pullWinner(players: Player[], pot: number, odds: number): string|null {
+  console.log('PULL WINNER')
+
+  const eligiblePlayers = players.filter((player: Player) => player.score > 50);
+  const tickets: Ticket [] = [];
+  let currentTicketNumber = 0
+
+  eligiblePlayers.forEach((player: Player) => {
+    for (let i = 0; i < player.score; i++) {
+      const ticket = {
+        owner: player.address,
+        number: currentTicketNumber
+      }
+
+      tickets.push(ticket);
+      currentTicketNumber++;
+    }
+  })
+
+  console.log(`${tickets.length} tickets`)
+
+  const getRandomNumber = (min, max) => {
+    return Math.random() * (max - min) + min
+  }
+
+  const winningTicket = tickets[getRandomNumber(0, tickets.length)]
+  
+  const hitsJackpot = getRandomNumber(0, 100) <= odds;
+  console.log(`JACKPOT: ${hitsJackpot}`)
+
+  if(hitsJackpot) {
+    return winningTicket.owner;
+  }
+
+  return null
 }
 
 async function getPlayers(epoch: Epoch): Promise<Player[]> {
@@ -214,7 +259,8 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
         address: account.pubkey.toString(),
         oldBalance: 0,
         balance: Number(accountData.amount) / (10 ** 9),
-        startedAt: epoch.progress,
+        enteredAt: epoch.progress,
+        exitedAt: 0,
         score: epoch.progress
       };
 
@@ -228,7 +274,7 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
 async function getValidatorRewards(epoch: number) {
   console.log('GET REWARDS')
   const rewards = await connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS)], epoch); 
-console.log(rewards)
+
   if (rewards) {
     return rewards[0].amount / (10 ** 9)
   }
@@ -256,7 +302,7 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
   );
 
   const tx = new Transaction();
-  
+ 
   tx.add(createTransferInstruction(
       sourceAccount.address,
       destinationAccount.address,
@@ -277,5 +323,8 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
 }
 
 
-
-run().then()
+// Schedule a job to run at the start of every hour
+// every hour '0 * * * *'
+const job = schedule.scheduleJob('*/30 * * * * *', async () => {
+  run()
+});
