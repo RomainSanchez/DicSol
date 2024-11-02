@@ -1,6 +1,6 @@
 import { clusterApiUrl, Connection, EpochInfo, Keypair, Transaction, sendAndConfirmTransaction, SystemProgram, ParsedAccountData } from "@solana/web3.js";
 import Queue from "bull";
-import { MongoClient } from "mongodb";
+import { MongoClient, WithId } from "mongodb";
 import { PublicKey } from "@solana/web3.js";
 import { AccountLayout, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, createTransferInstruction, getAccount } from "@solana/spl-token";
 import bs58 from 'bs58';
@@ -30,6 +30,7 @@ interface Round {
   winner: string|null;
   players: Player[];
   pot: number;
+  odds: number;
   tx: string|null;
   createdAt: Date;
   updatedAt: Date;
@@ -43,11 +44,15 @@ async function run() {
   let round = await getRound(epoch.number);
 
   if (!round) {
-    await createRound(epoch.number, players)
+    const previousRound = await getRound(epoch.number - 1);
+
+    if(previousRound) {
+      await endRound(previousRound);
+    }
+
+    await createRound(epoch.number, players, previousRound)
 
     round = await getRound(epoch.number)
-
-    endRound(epoch.number - 1)
   } else {
     players.forEach((newPlayer: Player) => {
       const existingPlayer = round?.players.find((player: Player) => player.address === newPlayer.address);
@@ -85,23 +90,25 @@ async function getCurrentEpoch(): Promise<Epoch> {
     progress: Math.round((epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100)
   }
 
-  console.log(epoch)
   return epoch;
 }
 
 // functions that help jobs
-async function createRound(epoch: number, players: Array<Player>) {
+async function createRound(epoch: number, players: Array<Player>, previousRound) {
   console.log('CREATE ROUND')
   const db = client.db("lottos");
   const collection = db.collection("rounds");
+  const hadWinner = previousRound && previousRound.tx ? true: false
 
-  const pot = await getJackpot(epoch - 1)
+  const pot = await getJackpot(epoch - 1, hadWinner ? null : previousRound?.pot);
+  const odds = await getOdds(previousRound?.odds, hadWinner);
 
   const round: Round = {
     epoch,
     winner: null,
     players,
     pot,
+    odds,
     tx: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -111,12 +118,41 @@ async function createRound(epoch: number, players: Array<Player>) {
   return await collection.insertOne(round);
 }
 
-async function getJackpot(epoch: number): Promise<number> {
-  const rewards = getValidatorRewards(epoch)
-  return 2;
+async function getJackpot(epoch: number, previousPot: number|null ): Promise<number> {
+  const rewards = await getValidatorRewards(epoch)
+  
+  let pot: number = (rewards / 3.5)
+
+  if(previousPot) {
+    pot += previousPot;
+  }
+
+  if(process.env.BONUS) {
+    const bonus = Number(process.env.BONUS);
+
+    if(bonus > 0) {
+      pot += bonus;
+    }
+  }
+
+  return pot;
+}
+
+async function getOdds(previousOdds: number | null, hadWinner: boolean) {
+  if (!previousOdds || previousOdds == 100 || hadWinner) {
+    return 10;
+  }
+
+  return previousOdds + 10;
+  
 }
 
 async function updateScores(players: Player[]) {
+  players.forEach((player: Player) => {
+    let newScore;
+
+    // if(pl)
+  })
   // if start - end > 50 eligible
   // if start -
   return players;
@@ -132,9 +168,7 @@ async function updateRound(round) {
   await collection.updateOne({ _id: round._id }, {$set: round}) 
 }
 
-async function endRound(epoch: number) {
-  const round = await getRound(epoch);
-  
+async function endRound(round) {
   if (!round.winner) {
     const winner = pullWinner(round.players);
 
@@ -195,11 +229,11 @@ async function getValidatorRewards(epoch: number) {
   console.log('GET REWARDS')
   const rewards = await connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS)], epoch); 
 console.log(rewards)
-  if (rewards) { 
-    return rewards; 
+  if (rewards) {
+    return rewards[0].amount / (10 ** 9)
   }
 
-  else throw new Error('Rewards not found');
+  return 0;
 }
 
 async function sendWinnings(recipient: string, amount: number): Promise<string> {
@@ -244,5 +278,4 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
 
 
 
-// run().then()
-getJackpot(691)
+run().then()
