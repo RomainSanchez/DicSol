@@ -156,14 +156,20 @@ async function getOdds(previousOdds: number | null, hadWinner: boolean) {
 
 async function updateScores(epochProgress: number, players: Player[]) {
   players.forEach((player: Player) => {
-    let newScore;
-
     if(player.balance < 1) {
-      if(player.oldBalance > 0) {
-        player.exitedAt = epochProgress;
+      player.exitedAt = epochProgress;
+
+      if(player.oldBalance > 1) {
+        player.score = player.exitedAt - player.enteredAt;
+      } else {
+        player.score = 0;
       }
-      
-      player.score = 0;
+    } else {
+      const newScore = 100 - epochProgress;
+
+      if(player.score < newScore) {
+        player.score = newScore;
+      }
     }
   })
  
@@ -261,7 +267,7 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
         balance: Number(accountData.amount) / (10 ** 9),
         enteredAt: epoch.progress,
         exitedAt: 0,
-        score: epoch.progress
+        score: 0
       };
 
       return player
