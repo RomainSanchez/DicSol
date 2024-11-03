@@ -6,8 +6,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const mongoUrl = process.env.MONGO
-const client = new MongoClient(mongoUrl ? mongoUrl: '');
+const mongoUrl = process.env.MONGO!
+const client = new MongoClient(mongoUrl);
 
 const router = Router()
 

@@ -9,9 +9,9 @@ import schedule from 'node-schedule';
 
 dotenv.config()
 
-const connection = new Connection(process.env.RPC); 
-const mintAddress = process.env.MINT_ADDRESS;
-const client = new MongoClient(process.env.MONGO);
+const connection = new Connection(process.env.RPC!); 
+const mintAddress = process.env.MINT_ADDRESS!;
+const client = new MongoClient(process.env.MONGO!);
 
 interface Epoch{
   number: number;
@@ -101,7 +101,7 @@ async function getCurrentEpoch(): Promise<Epoch> {
 }
 
 // functions that help jobs
-async function createRound(epoch: number, players: Array<Player>, previousRound) {
+async function createRound(epoch: number, players: Array<Player>, previousRound: any) {
   console.log('CREATE ROUND')
   const db = client.db("lottos");
   const collection = db.collection("rounds");
@@ -170,7 +170,7 @@ async function updateScores(epochProgress: number, players: Player[]) {
   return players;
 }
 
-async function updateRound(round) {
+async function updateRound(round: any) {
   console.log('UPDATE ROUND')
   const db = client.db("lottos");
   const collection = db.collection("rounds");
@@ -180,7 +180,7 @@ async function updateRound(round) {
   await collection.updateOne({ _id: round._id }, {$set: round}) 
 }
 
-async function endRound(round) {
+async function endRound(round: any) {
   if (!round.winner) {
     const winner = pullWinner(round.players, round.pot, round.odds);
 
@@ -216,7 +216,7 @@ function pullWinner(players: Player[], pot: number, odds: number): string|null {
 
   console.log(`${tickets.length} tickets`)
 
-  const getRandomNumber = (min, max) => {
+  const getRandomNumber = (min: number, max: number) => {
     return Math.random() * (max - min) + min
   }
 
@@ -252,7 +252,7 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
   });
 
   const players = accounts
-    .map((account) => {
+    .map((account: any) => {
       const accountData = AccountLayout.decode(account.account.data);
 
       let player: Player = {
@@ -266,16 +266,16 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
 
       return player
     })
-    .filter((player) => player.balance !== 0);
+    .filter((player: Player) => player.balance !== 0);
 
   return players;
 }
 
 async function getValidatorRewards(epoch: number) {
   console.log('GET REWARDS')
-  const rewards = await connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS)], epoch); 
+  const rewards = await connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS!)], epoch); 
 
-  if (rewards) {
+  if (rewards && rewards[0]) {
     return rewards[0].amount / (10 ** 9)
   }
 
@@ -286,7 +286,7 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
   console.log('SEND WINNINGS')
   // TODO use mainnet global connection
   const connection = new Connection(clusterApiUrl("devnet"));
-  const secret = bs58.decode(process.env.SECRET)
+  const secret = bs58.decode(process.env.SECRET!)
   const keyPair = Keypair.fromSecretKey(new Uint8Array(Array.from(secret)));
   
   let sourceAccount = await getOrCreateAssociatedTokenAccount(
@@ -326,6 +326,6 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
 
 // every hour '0 * * * *'
 // every 30 seconds '*/30 * * * * *'
-const job = schedule.scheduleJob('*/30 * * * * *', async () => {
+const job = schedule.scheduleJob(process.env.CRON!, async () => {
   run()
 });
