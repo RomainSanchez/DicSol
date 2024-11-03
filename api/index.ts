@@ -1,11 +1,8 @@
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import express, { Request, Response } from "express";
-import dotenv from "dotenv";
 
 const routes = require('./routes')
-
-dotenv.config();
 
 const app = express()
 
@@ -20,6 +17,6 @@ app.use('/', routes);
 
 app.listen(process.env.PORT!, () => { 
   console.log("Server running at PORT: ", process.env.PORT); 
-}).on("error", (error) => {
+}).on("error", (error: any) => {
   throw new Error(error.message);
 });
