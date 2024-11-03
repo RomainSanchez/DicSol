@@ -25,6 +25,18 @@ router.get('/rounds', async (req: Request, res: Response) => {
     }
 })
 
+router.get('/test', async (req: Request, res: Response) => {
+    
+    try {
+        const db = client.db("lottos");
+        const collection = db.collection("rounds");
+        await collection.insertOne({epoch: 69})
+        res.status(200)
+    } catch (error: any) {
+        res.status(500).json({ message: error.message })
+    }
+})
+
 // router.get('/round/:id', async (req, res) => {
 //     const { name } = req.params
 
