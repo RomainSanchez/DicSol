@@ -3,11 +3,7 @@ import { MongoClient } from "mongodb";
 import { PublicKey } from "@solana/web3.js";
 import { AccountLayout, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, createTransferInstruction, getAccount } from "@solana/spl-token";
 import bs58 from 'bs58';
-import * as dotenv from 'dotenv';
 import schedule from 'node-schedule';
-
-
-dotenv.config()
 
 const connection = new Connection(process.env.RPC!); 
 const mintAddress = process.env.MINT_ADDRESS!;
