@@ -151,7 +151,9 @@ async function getOdds(previousOdds: number | null, hadWinner: boolean) {
 async function updateScores(epochProgress: number, players: Player[]) {
   players.forEach((player: Player) => {
     if(player.balance < 1) {
-      player.exitedAt = epochProgress;
+      if(player.exitedAt == 0) {
+        player.exitedAt = epochProgress;
+      }
 
       if(player.oldBalance > 1) {
         player.score = player.exitedAt - player.enteredAt;
