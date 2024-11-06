@@ -17,6 +17,6 @@
   },
   "scripts": {
     "build": "npx tsc",
-    "start": "node dist/app.js"
+    "start": "dotenvx run -- node dist/app.js"
   }
 }
