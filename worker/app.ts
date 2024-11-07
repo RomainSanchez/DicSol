@@ -199,8 +199,8 @@ async function endRound(round: any) {
 
 function pullWinner(players: Player[], pot: number, odds: number): string|null {
   console.log('PULL WINNER')
-
-  const eligiblePlayers = players.filter((player: Player) => player.score > 50);
+  const excludedPlayers = process.env.EXCLUDE!.split(' ');
+  const eligiblePlayers = players.filter((player: Player) => player.score > 50 && !excludedPlayers.includes(player.address));
   const tickets: Ticket [] = [];
   let currentTicketNumber = 0
 
