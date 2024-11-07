@@ -312,16 +312,20 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
       amount * Math.pow(10, 9),
   ))
 
-  const latestBlockHash = await connection.getLatestBlockhash('confirmed');
-  tx.recentBlockhash = await latestBlockHash.blockhash;    
-  const signature = await sendAndConfirmTransaction(connection,tx,[keyPair]);
-  console.log(
-      '\x1b[32m', //Green Text
-      `   Transaction Success!🎉`,
-      `\n    https://explorer.solana.com/tx/${signature}?cluster=devnet`
-  );
+  try {
+    const latestBlockHash = await connection.getLatestBlockhash('confirmed');
+    tx.recentBlockhash = await latestBlockHash.blockhash;    
+    const signature = await sendAndConfirmTransaction(connection,tx,[keyPair]);
+    console.log(
+        '\x1b[32m', //Green Text
+        `   Transaction Success!🎉`,
+        `\n    https://explorer.solana.com/tx/${signature}?cluster=devnet`
+    );
 
-  return signature;
+    return signature;
+  } catch (e) {
+    return 'FAILED'
+  }
 }
 
 
