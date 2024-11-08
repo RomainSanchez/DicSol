@@ -236,8 +236,6 @@ function pullWinner(players: Player[], pot: number, odds: number): string|null {
 
 async function getPlayers(epoch: Epoch): Promise<Player[]> {
   console.log('GET PLAYERS')
-  // TODO use mainnet global connection
-  const connection = new Connection(clusterApiUrl("devnet"));
   const mint = new PublicKey(mintAddress);
   const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
     filters: [
@@ -286,8 +284,6 @@ async function getValidatorRewards(epoch: number) {
 
 async function sendWinnings(recipient: string, amount: number): Promise<string> {
   console.log('SEND WINNINGS')
-  // TODO use mainnet global connection
-  const connection = new Connection(clusterApiUrl("devnet"));
   const secret = bs58.decode(process.env.SECRET!)
   const keyPair = Keypair.fromSecretKey(new Uint8Array(Array.from(secret)));
   
@@ -327,7 +323,6 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
     return 'FAILED'
   }
 }
-
 
 
 // every hour '0 * * * *'
