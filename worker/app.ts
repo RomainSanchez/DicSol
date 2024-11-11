@@ -219,11 +219,11 @@ function pullWinner(players: Player[], pot: number, odds: number): string|null {
   console.log(`${tickets.length} tickets`)
 
   const getRandomNumber = (min: number, max: number) => {
-    return Math.random() * (max - min) + min
+     return Math.round(Math.random() * (max - min) + min);
   }
 
-  const winningTicket = tickets[getRandomNumber(0, tickets.length)]
-  
+  const winningTicket = tickets[getRandomNumber(0, tickets.length -1)];
+console.log(winningTicket);  
   const hitsJackpot = getRandomNumber(0, 100) <= odds;
   console.log(`JACKPOT: ${hitsJackpot}`)
 
