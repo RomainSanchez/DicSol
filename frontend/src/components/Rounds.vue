@@ -7,13 +7,7 @@
      <li v-for="round in rounds">
   {{ round }}
 </li>
-    <v-btn>FFFFF</v-btn>
-      <v-img
-        class="mb-4"
-        height="150"
-        src="@/assets/dics.png"
-      />
-
+    <v-btn>{{jackpot}}</v-btn>
       <div class="text-center">
         <div class="text-body-2 font-weight-light mb-n1">Welcome to</div>
 
@@ -159,9 +153,14 @@
 <script setup lang="ts">
   import { useRoundStore } from "../stores/rounds";
   const store = useRoundStore();
-
   const rounds = computed(() => {
+    
     return store.rounds;
+  }); 
+
+  const jackpot = computed(() => {
+    
+    return Math.floor(store.currentRound.pot * 100) / 100 ;
   });
 
   onMounted(() => {
