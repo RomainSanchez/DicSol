@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onErrorCaptured } from 'vue'
-import type { Round, SortBy } from '@/types/lottery'
+import type { Round, SortBy, Player } from '../types/lottery'
 import PotDisplay from './PotDisplay.vue'
 import RoundStatus from './RoundStatus.vue'
 import JackpotDisplay from './JackpotDisplay.vue'
@@ -43,7 +43,7 @@ const filteredRounds = computed(() => {
 })
 
 const getActivePlayers = (round: Round): number => 
-  round.players.filter(p => p.exitedAt === 0).length
+  round.players.filter((p: Player )=> p.exitedAt === 0).length
 
 const formatDate = (date: string): string => {
   try {
@@ -172,7 +172,7 @@ onErrorCaptured((err) => {
 
                     <div class="text-subtitle-1 font-weight-medium mb-4 text-center">Players</div>
                     <TablePlayerList
-                      :players="item.players.filter(p => p.exitedAt === 0)"
+                      :players="item.players.filter((p: Player) => p.exitedAt === 0)"
                       :winner="item.winner"
                     />
                   </div>
