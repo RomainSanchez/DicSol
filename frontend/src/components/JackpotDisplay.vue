@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import PotDisplay from './PotDisplay.vue'
 
 const props = defineProps<{
   amount: number

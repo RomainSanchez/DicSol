@@ -1,4 +1,4 @@
-import type { Round } from '@/types/lottery'
+import type { Round } from '../types/lottery'
 
 const API_URL = 'https://api.dicsol.xyz/rounds'
 

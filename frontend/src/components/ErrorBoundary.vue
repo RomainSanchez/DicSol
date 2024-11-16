@@ -22,14 +22,6 @@ onErrorCaptured((err: Error) => {
         Something went wrong
       </template>
       <p>We're sorry, but there was an error loading this content.</p>
-      <v-btn
-        color="error"
-        variant="tonal"
-        class="mt-2"
-        @click="window.location.reload()"
-      >
-        Reload Page
-      </v-btn>
     </v-alert>
   </div>
   <slot v-else></slot>

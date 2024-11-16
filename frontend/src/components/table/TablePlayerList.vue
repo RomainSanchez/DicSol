@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Player } from '@/types/lottery'
+import type { Player } from '../../types/lottery'
 
 const props = defineProps<{
   players: Player[]

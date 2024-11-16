@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { fetchRounds } from '../api/rounds'
-import type { Round } from '@/types/lottery'
+import type { Round } from '../types/lottery'
 import RoundsTable from './RoundsTable.vue'
 import ErrorBoundary from './ErrorBoundary.vue'
 import LoadingSpinner from './LoadingSpinner.vue'

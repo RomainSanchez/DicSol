@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
-const props = defineProps<{
-  placeholder?: string
-}>()
-
 const emit = defineEmits<{
   (e: 'search', value: string): void
 }>()
@@ -26,7 +22,6 @@ watch(searchInput, (newValue) => {
 <template>
   <v-text-field
     v-model="searchInput"
-    :placeholder="placeholder ?? 'Search...'"
     prepend-inner-icon="mdi-magnify"
     variant="outlined"
     density="comfortable"

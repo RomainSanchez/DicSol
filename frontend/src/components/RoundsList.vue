@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import PotDisplay from './PotDisplay.vue'
 import RoundStatus from './RoundStatus.vue'
 
@@ -11,7 +10,7 @@ interface Round {
   ended: boolean
 }
 
-const props = defineProps<{
+defineProps<{
   rounds: Round[]
   selectedRound: string | null
 }>()
