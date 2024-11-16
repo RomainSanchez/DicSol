@@ -107,15 +107,15 @@ onErrorCaptured((err) => {
         <v-data-table
           :headers="[
             { title: 'Epoch', key: 'epoch', align: 'center' },
-            { title: 'Status', key: 'status', align: 'center', sortable: false },
+            { title: 'Status', key: 'status', align: 'center' },
             { title: 'Pot', key: 'pot', align: 'center' },
             { title: 'Players', key: 'players', align: 'center' },
-            { title: 'Created', key: 'createdAt', align: 'center' }
+            { title: 'Ended', key: 'endedAt', align: 'center' }
           ]"
           :items="filteredRounds"
           :sort-by="sortBy"
           :items-per-page="itemsPerPage"
-          hover
+          
           class="table-content"
           @update:sort-by="sortBy = $event"
         >
@@ -127,11 +127,11 @@ onErrorCaptured((err) => {
               <td>
                 <div class="d-flex align-center justify-center">
                   <v-icon
-                    :icon="expandedRound === item._id ? 'mdi-chevron-down' : 'mdi-chevron-right'"
+                    :icon="expandedRound === item._id ? 'mdi-chevron-up' : 'mdi-chevron-down'"
                     size="20"
                     class="me-2 expand-icon"
                   ></v-icon>
-                  <span class="text-h6 font-weight-medium text-primary">#{{ item.epoch }}</span>
+                  <span class="text-h6 font-weight-medium text-primary">{{ item.epoch }}</span>
                 </div>
               </td>
               <td>
