@@ -1,6 +1,6 @@
 module.exports = {
         apps : [{
-            name: 'worker',
+            name: 'api',
             script : "npm run start",
         }]
     };
