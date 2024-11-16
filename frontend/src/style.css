@@ -1,0 +1,86 @@
+:root {
+  /* Theme Colors */
+  --surface: #1e1e1e;
+  --surface-dark: #141414;
+  --surface-light: #252526;
+  --primary: #0078d4;
+  --primary-rgb: 0, 120, 212;
+  --primary-light: #3794ff;
+  --text: #d4d4d4;
+  --text-secondary: #858585;
+  
+  /* Status Colors */
+  --success: #89d185;
+  --warning: #cca700;
+  --error: #f14c4c;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(45deg, var(--primary), var(--primary-light));
+  --gradient-surface: linear-gradient(165deg, var(--surface-light), var(--surface));
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  
+  /* Typography */
+  --font-primary: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Roboto Mono', monospace;
+  
+  font-family: var(--font-primary);
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  color: var(--text);
+  background-color: var(--surface);
+
+  /* Font Display */
+  font-display: swap;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(circle at center, var(--surface-light) 0%, var(--surface-dark) 100%);
+}
+
+.v-application {
+  font-family: var(--font-primary) !important;
+  background: var(--surface) !important;
+}
+
+/* Typography Utilities */
+.text-h1, .text-h2, .text-h3, .text-h4, .text-h5, .text-h6 {
+  font-family: var(--font-primary) !important;
+  letter-spacing: -0.02em;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.025em;
+}
+
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active {
+  transition: all var(--transition-normal);
+}
+
+.slide-up-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}

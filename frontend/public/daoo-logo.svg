@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E0E0E0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <g>
+    <!-- White border/outline -->
+    <circle cx="256" cy="256" r="250" fill="white"/>
+    <!-- Black background circle -->
+    <circle cx="256" cy="256" r="240" fill="black"/>
+    <!-- DAOO text banner -->
+    <path d="M 130,80 H 380 L 380,140 H 130 Z" fill="white"/>
+    <text x="150" y="125" font-family="Arial Black, sans-serif" font-size="45" font-weight="bold">
+      <tspan fill="#4CAF50">D</tspan>
+      <tspan fill="#FFC107">A</tspan>
+      <tspan fill="#F44336">O</tspan>
+      <tspan fill="#2196F3">O</tspan>
+    </text>
+    <!-- Three white diagonal bars -->
+    <path d="M 160,180 L 360,180 L 360,220 L 160,220 Z" fill="white" transform="rotate(-15, 256, 256)"/>
+    <path d="M 160,250 L 360,250 L 360,290 L 160,290 Z" fill="white" transform="rotate(-15, 256, 256)"/>
+    <path d="M 160,320 L 360,320 L 360,360 L 160,360 Z" fill="white" transform="rotate(-15, 256, 256)"/>
+    <!-- Tongue detail -->
+    <path d="M 340,340 Q 350,350 340,360" stroke="black" stroke-width="4" fill="none"/>
+  </g>
+</svg>
