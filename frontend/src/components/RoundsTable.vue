@@ -101,8 +101,7 @@ onErrorCaptured((err) => {
       <!-- Table -->
       <v-card
         class="table-card"
-        elevation="0"
-        width="100%"
+        elevation="1"
       >
         <v-data-table
           :headers="[
@@ -113,9 +112,9 @@ onErrorCaptured((err) => {
             { title: 'Ended', key: 'endedAt', align: 'center' }
           ]"
           :items="filteredRounds"
+          :mobile="null"
           :sort-by="sortBy"
           :items-per-page="itemsPerPage"
-          
           class="table-content"
           @update:sort-by="sortBy = $event"
         >
@@ -135,7 +134,7 @@ onErrorCaptured((err) => {
                 </div>
               </td>
               <td>
-                <div class="d-flex justify-center">
+                <div class="d-flex align-center justify-center">
                   <RoundStatus
                     :ended="item.ended"
                     :winner="item.winner"
@@ -144,17 +143,17 @@ onErrorCaptured((err) => {
                 </div>
               </td>
               <td>
-                <div class="d-flex justify-center">
+                <div class="d-flex align-center justify-center">
                   <PotDisplay :amount="item.pot" size="small" />
                 </div>
               </td>
               <td>
-                <div class="d-flex justify-center">
+                <div class="d-flex align-center justify-center">
                   <span class="text-h6 font-weight-medium">{{ getActivePlayers(item) }}</span>
                 </div>
               </td>
               <td>
-                <div class="d-flex justify-center">
+                <div class="d-flex align-center justify-center">
                   <span class="text-medium-emphasis">{{ formatDate(item.createdAt) }}</span>
                 </div>
               </td>
@@ -266,6 +265,10 @@ onErrorCaptured((err) => {
 
 .details-content {
   animation: slideDown var(--transition-normal);
+}
+
+:deep(th.v-data-table-headers--mobile) {
+  display: none;
 }
 
 :deep(.v-data-table__tr) {
