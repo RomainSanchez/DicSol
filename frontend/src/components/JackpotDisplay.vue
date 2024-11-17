@@ -71,7 +71,7 @@ onMounted(() => {
   background: var(--surface-dark);
   border-radius: 16px;
   padding: 1.5rem;
-  width: 100%;
+  width: 90%;
   border: 2px solid var(--success);
   box-shadow: 
     0 0 20px rgba(137, 209, 133, 0.2),
