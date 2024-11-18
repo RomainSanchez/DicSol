@@ -47,12 +47,14 @@ async function run() {
   
   let round = await getRound(epoch.number);
 
-  if (!round) {
-    const previousRound = await getRound(epoch.number - 1);
+  const previousRound = await getRound(epoch.number - 1);
 
-    if(previousRound) {
-      await endRound(previousRound);
-    }
+  // Try to end round everytime in case of failed tx
+  if(previousRound) {
+    await endRound(previousRound);
+  }
+
+  if (!round) {
 
     await createRound(epoch.number, players, previousRound)
 
@@ -183,17 +185,18 @@ async function updateRound(round: any) {
 }
 
 async function endRound(round: any) {
-  if (!round.winner) {
-    const winner = pullWinner(round.players, round.pot, round.odds);
+  if(!round.winner) {
+    round.winner = pullWinner(round.players, round.pot, round.odds);
+  }
 
-    if(winner) {
-      round.tx = await sendWinnings(winner, round.pot);
-      round.winner = winner;
+  if(round.winner) {
+    if(!round.tx) {
+      round.tx = await sendWinnings(round.winner, round.pot);
+
+      round.ended = true;
+
+      await updateRound(round);
     }
-
-    round.ended = true;
-
-    await updateRound(round);
   }
 }
 
@@ -282,7 +285,7 @@ async function getValidatorRewards(epoch: number) {
   return 0;
 }
 
-async function sendWinnings(recipient: string, amount: number): Promise<string> {
+async function sendWinnings(recipient: string, amount: number): Promise<string | null> {
   console.log('SEND WINNINGS')
   const secret = bs58.decode(process.env.SECRET!)
   const keyPair = Keypair.fromSecretKey(new Uint8Array(Array.from(secret)));
@@ -320,7 +323,8 @@ async function sendWinnings(recipient: string, amount: number): Promise<string> 
 
     return signature;
   } catch (e) {
-    return 'FAILED'
+    console.log('Transaction Error: ', e)
+    return null;
   }
 }
 
