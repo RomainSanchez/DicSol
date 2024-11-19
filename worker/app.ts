@@ -260,7 +260,7 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
       const accountData = AccountLayout.decode(account.account.data);
 
       let player: Player = {
-        wallet: account.owner.toString(),
+        wallet: accountData.owner.toString(),
         address: account.pubkey.toString(),
         oldBalance: 0,
         balance: Number(accountData.amount) / (10 ** 9),
