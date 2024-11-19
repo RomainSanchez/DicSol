@@ -255,9 +255,7 @@ onErrorCaptured((err) => {
   transition: transform var(--transition-fast);
 }
 
-.expanded .expand-icon {
-  transform: rotate(90deg);
-}
+
 
 .details-row {
   background: rgba(var(--primary-rgb), 0.02);
