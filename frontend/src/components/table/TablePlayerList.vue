@@ -7,13 +7,13 @@ const props = defineProps<{
   winner: string | null
 }>()
 
-const formatAddress = (address: string): string => {
-  if (address.length <= 24) return address
-  return `${address.slice(0, 12)}...${address.slice(-8)}`
+const formatWallet = (wallet: string): string => {
+  if (wallet.length <= 24) return wallet
+  return `${wallet.slice(0, 12)}...${wallet.slice(-8)}`
 }
 
-const getSolscanUrl = (address: string): string => {
-  return `https://solscan.io/account/${address}`
+const getSolscanUrl = (wallet: string): string => {
+  return `https://solscan.io/account/${wallet}`
 }
 
 const getSortedPlayers = computed(() => {
@@ -32,7 +32,7 @@ const getSortedPlayers = computed(() => {
     <v-list density="compact" class="player-list-container">
       <v-list-item
         v-for="player in getSortedPlayers"
-        :key="player.address"
+        :key="player.wallet"
         class="player-item mb-2"
         :class="{ 'winner': player.address === winner }"
       >
@@ -51,14 +51,14 @@ const getSortedPlayers = computed(() => {
         
         <v-list-item-title class="d-flex justify-center">
           <a
-            :href="getSolscanUrl(player.address)"
+            :href="getSolscanUrl(player.wallet)"
             target="_blank"
             rel="noopener noreferrer"
-            class="address-link"
+            class="wallet-link"
             :class="{ 'winner-text': player.address === winner }"
             @click.stop
           >
-            <span class="address">{{ formatAddress(player.address) }}</span>
+            <span class="wallet">{{ formatWallet(player.wallet) }}</span>
             <v-icon
               icon="mdi-open-in-new"
               size="14"
@@ -94,31 +94,33 @@ const getSortedPlayers = computed(() => {
   border: 1px solid rgba(137, 209, 133, 0.2);
 }
 
-.address {
+.wallet {
   font-family: 'Roboto Mono', monospace;
   font-size: 0.875rem;
   letter-spacing: 0.5px;
 }
 
-.address-link {
+.wallet-link {
   color: var(--primary);
   text-decoration: none;
   transition: color var(--transition-fast);
   padding: 0.5rem 1rem;
   border-radius: 4px;
   width: 100%;
+  display: flex;
   justify-content: center;
+  align-items: center;
 }
 
-.address-link.winner-text {
+.wallet-link.winner-text {
   color: var(--success);
 }
 
-.address-link:hover {
+.wallet-link:hover {
   color: var(--primary-light);
 }
 
-.address-link.winner-text:hover {
+.wallet-link.winner-text:hover {
   color: var(--success);
   opacity: 0.9;
 }
@@ -128,7 +130,7 @@ const getSortedPlayers = computed(() => {
   transition: opacity var(--transition-normal);
 }
 
-.address-link:hover .external-link-icon {
+.wallet-link:hover .external-link-icon {
   opacity: 1;
 }
 </style>

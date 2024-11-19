@@ -2,11 +2,7 @@
 import { computed } from 'vue'
 import PotDisplay from './PotDisplay.vue'
 import RoundStatus from './RoundStatus.vue'
-
-interface Player {
-  address: string
-  exitedAt: number
-}
+import { Player } from '../types/lottery'
 
 interface Round {
   _id: string

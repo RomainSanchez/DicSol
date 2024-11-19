@@ -1,4 +1,5 @@
 export interface Player {
+  wallet: string
   address: string
   balance: number
   score: number
