@@ -203,8 +203,7 @@ async function endRound(round: any) {
 
 function pullWinner(players: Player[], pot: number, odds: number): string|null {
   console.log('PULL WINNER')
-  const excludedPlayers = process.env.EXCLUDE!.split(' ');
-  const eligiblePlayers = players.filter((player: Player) => player.score > 50 && !excludedPlayers.includes(player.address));
+  const eligiblePlayers = players.filter((player: Player) => player.score > 50);
   const tickets: Ticket [] = [];
   let currentTicketNumber = 0
 
@@ -241,6 +240,8 @@ console.log(winningTicket);
 async function getPlayers(epoch: Epoch): Promise<Player[]> {
   console.log('GET PLAYERS')
   const mint = new PublicKey(mintAddress);
+  const excludedPlayers = process.env.EXCLUDE!.split(' ');
+
   const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
     filters: [
       {
@@ -271,7 +272,7 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
 
       return player
     })
-    .filter((player: Player) => player.balance !== 0);
+    .filter((player: Player) => player.balance > 0 && !excludedPlayers.includes(player.address) && !excludedPlayers.includes(player.wallet));
 
   return players;
 }
