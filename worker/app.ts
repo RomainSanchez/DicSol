@@ -110,20 +110,7 @@ async function updateScores(epochProgress: number, players: Player[]) {
 function pullWinner(players: Player[], pot: number, odds: number): string|null {
   console.log('PULL WINNER')
   const eligiblePlayers = players.filter((player: Player) => player.score > 50);
-  const tickets: Ticket [] = [];
-  let currentTicketNumber = 0
-
-  eligiblePlayers.forEach((player: Player) => {
-    for (let i = 0; i < player.score; i++) {
-      const ticket = {
-        owner: player.address,
-        number: currentTicketNumber
-      }
-
-      tickets.push(ticket);
-      currentTicketNumber++;
-    }
-  })
+  const tickets: Ticket [] = getTickets(eligiblePlayers);
 
   console.log(`${tickets.length} tickets`)
 
@@ -132,15 +119,45 @@ function pullWinner(players: Player[], pot: number, odds: number): string|null {
   }
 
   const winningTicket = tickets[getRandomNumber(0, tickets.length -1)];
-console.log(winningTicket);  
+  console.log('Ticket: ', winningTicket);  
   const hitsJackpot = getRandomNumber(0, 100) <= odds;
-  console.log(`JACKPOT: ${hitsJackpot}`)
+  console.log(`JACKPOT: ${hitsJackpot}`);
 
   if(hitsJackpot) {
     return winningTicket.owner;
   }
 
   return null
+}
+
+function getTickets(players: Player[]): Ticket[] {
+  const tickets: Ticket [] = [];
+  let currentTicketNumber = 0
+
+  players.forEach((player: Player) => {
+    let ticketAmount = player.score;
+
+    if(player.balance > 10) {
+      ticketAmount = ticketAmount * 1.5; 
+    } else if (player.balance > 20) {
+      ticketAmount = ticketAmount * 2
+    } else if (player.balance > 50) {
+      ticketAmount = ticketAmount * 3
+    }
+
+    for (let i = 0; i < ticketAmount; i++) {
+      const ticket = {
+        owner: player.address,
+        number: currentTicketNumber
+      }
+
+      tickets.push(ticket);
+    
+      currentTicketNumber++;
+    }
+  })
+
+  return tickets;
 }
 
 async function getPlayers(epoch: Epoch): Promise<Player[]> {
