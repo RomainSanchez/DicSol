@@ -1,54 +1,21 @@
-import { clusterApiUrl, Connection, EpochInfo, Keypair, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { MongoClient } from "mongodb";
-import { PublicKey } from "@solana/web3.js";
-import { AccountLayout, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, createTransferInstruction, getAccount } from "@solana/spl-token";
-import bs58 from 'bs58';
-
+import { AccountLayout } from "@solana/spl-token";
 import schedule from 'node-schedule';
+import { Round, Epoch, Player, Ticket } from "./types"
+import { RewardsService } from "./services/rewards";
+import { SolanaService } from "./services/solana";
+import { MongoService } from "./services/mongo";
 
-const connection = new Connection(process.env.RPC!); 
-const mintAddress = process.env.MINT_ADDRESS!;
-const client = new MongoClient(process.env.MONGO!);
-
-interface Epoch{
-  number: number;
-  progress: number
-}
-
-interface Player {
-  address: string;
-  wallet: string;
-  enteredAt: number;
-  exitedAt: number;
-  oldBalance: number;
-  balance: number;
-  score: number;
-}
-
-interface Round {
-  epoch: number
-  winner: string|null;
-  players: Player[];
-  pot: number;
-  odds: number;
-  tx: string|null;
-  createdAt: Date;
-  updatedAt: Date;
-  ended: boolean;
-}
-
-interface Ticket {
-  owner: string;
-  number: number;
-}
+const mongoService = new MongoService();
+const rewardsService = new RewardsService();
+const solanaService = new SolanaService();
 
 async function run() {
-  const epoch: Epoch = await getCurrentEpoch()
+  const epoch: Epoch = await solanaService.getCurrentEpoch()
   const players: Player[] =  await getPlayers(epoch);
   
-  let round = await getRound(epoch.number);
+  let round = await mongoService.getRound(epoch.number);
 
-  const previousRound = await getRound(epoch.number - 1);
+  const previousRound = await mongoService.getRound(epoch.number - 1);
 
   // Try to end round everytime in case of failed tx
   if(previousRound) {
@@ -57,9 +24,9 @@ async function run() {
 
   if (!round) {
 
-    await createRound(epoch.number, players, previousRound)
+    await startRound(epoch.number, players, previousRound)
 
-    round = await getRound(epoch.number)
+    round = await mongoService.getRound(epoch.number)
   } else {
     players.forEach((newPlayer: Player) => {
       const existingPlayer = round?.players.find((player: Player) => player.address === newPlayer.address);
@@ -70,38 +37,16 @@ async function run() {
       } else {
           round?.players.push(newPlayer);
       }
-  });
+    });
 
-  round.players = await updateScores(epoch.progress, round.players);
+    round.players = await updateScores(epoch.progress, round.players);
 
-  updateRound(round);
+    mongoService.updateRound(round);
   }
 }
 
-async function getRound(epoch: number) {
-  const db = client.db("lottos");
-  const collection = db.collection("rounds");
-
-  return await collection.findOne({ epoch: epoch });
-}
-
-async function getCurrentEpoch(): Promise<Epoch> {
-  const epochInfo: EpochInfo = await connection.getEpochInfo();
-
-  const epoch: Epoch = 
-  {
-    number: epochInfo.epoch,
-    progress: Math.round((epochInfo.slotIndex / epochInfo.slotsInEpoch) * 100)
-  }
-
-  return epoch;
-}
-
-// functions that help jobs
-async function createRound(epoch: number, players: Array<Player>, previousRound: any) {
+async function startRound(epoch: number, players: Array<Player>, previousRound: any) {
   console.log('CREATE ROUND')
-  const db = client.db("lottos");
-  const collection = db.collection("rounds");
   const hadWinner = previousRound && previousRound.tx ? true: false
 
   const pot = await getJackpot(epoch - 1, hadWinner ? null : previousRound?.pot);
@@ -119,36 +64,23 @@ async function createRound(epoch: number, players: Array<Player>, previousRound:
     ended: false,
   };
 
-  return await collection.insertOne(round);
+  return await mongoService.createRound(round);
 }
 
-async function getJackpot(epoch: number, previousPot: number|null ): Promise<number> {
-  const rewards = await getValidatorRewards(epoch)
-  
-  let pot: number = (rewards / 3.5)
-
-  if(previousPot) {
-    pot += previousPot;
+async function endRound(round: any) {
+  if(!round.winner) {
+    round.winner = pullWinner(round.players, round.pot, round.odds);
   }
 
-  if(process.env.BONUS) {
-    const bonus = Number(process.env.BONUS);
+  if(round.winner) {
+    if(!round.tx) {
+      round.tx = await solanaService.sendTransaction(round.winner, round.pot);
 
-    if(bonus > 0) {
-      pot += bonus;
+      round.ended = true;
+
+      await mongoService.updateRound(round);
     }
   }
-
-  return Number(pot.toFixed(9));
-}
-
-async function getOdds(previousOdds: number | null, hadWinner: boolean) {
-  if (!previousOdds || previousOdds == 100 || hadWinner) {
-    return 10;
-  }
-
-  return previousOdds + 10;
-  
 }
 
 async function updateScores(epochProgress: number, players: Player[]) {
@@ -173,32 +105,6 @@ async function updateScores(epochProgress: number, players: Player[]) {
   })
  
   return players;
-}
-
-async function updateRound(round: any) {
-  console.log('UPDATE ROUND')
-  const db = client.db("lottos");
-  const collection = db.collection("rounds");
-
-  round.updatedAt = new Date();
-
-  await collection.updateOne({ _id: round._id }, {$set: round}) 
-}
-
-async function endRound(round: any) {
-  if(!round.winner) {
-    round.winner = pullWinner(round.players, round.pot, round.odds);
-  }
-
-  if(round.winner) {
-    if(!round.tx) {
-      round.tx = await sendWinnings(round.winner, round.pot);
-
-      round.ended = true;
-
-      await updateRound(round);
-    }
-  }
 }
 
 function pullWinner(players: Player[], pot: number, odds: number): string|null {
@@ -239,22 +145,9 @@ console.log(winningTicket);
 
 async function getPlayers(epoch: Epoch): Promise<Player[]> {
   console.log('GET PLAYERS')
-  const mint = new PublicKey(mintAddress);
-  const excludedPlayers = process.env.EXCLUDE!.split(' ');
 
-  const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
-    filters: [
-      {
-        dataSize: 165,
-      },
-      {
-        memcmp: {
-          offset: 0,
-          bytes: mint.toBase58(),
-        },
-      },
-    ],
-  });
+  const excludedPlayers = process.env.EXCLUDE!.split(' ');
+  const accounts =  await solanaService.getTokenAccounts(epoch)
 
   const players = accounts
     .map((account: any) => {
@@ -277,58 +170,33 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
   return players;
 }
 
-async function getValidatorRewards(epoch: number) {
-  console.log('GET REWARDS')
-  const rewards = await connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS!)], epoch); 
+async function getJackpot(epoch: number, previousPot: number|null ): Promise<number> {
+  const rewards = await rewardsService.getRewards(epoch);
+  
+  let pot: number = (rewards / 3.5)
 
-  if (rewards && rewards[0]) {
-    return rewards[0].amount / (10 ** 9)
+  if(previousPot) {
+    pot += previousPot;
   }
 
-  return 0;
+  if(process.env.BONUS) {
+    const bonus = Number(process.env.BONUS);
+
+    if(bonus > 0) {
+      pot += bonus;
+    }
+  }
+
+  return Number(pot.toFixed(9));
 }
 
-async function sendWinnings(recipient: string, amount: number): Promise<string | null> {
-  console.log('SEND WINNINGS')
-  const secret = bs58.decode(process.env.SECRET!)
-  const keyPair = Keypair.fromSecretKey(new Uint8Array(Array.from(secret)));
-  
-  let sourceAccount = await getOrCreateAssociatedTokenAccount(
-    connection, 
-    keyPair,
-    new PublicKey(mintAddress),
-    keyPair.publicKey
-  );
-
-  let destinationAccount = await getAccount(
-    connection, 
-    new PublicKey(recipient)
-  );
-
-  const tx = new Transaction();
- 
-  tx.add(createTransferInstruction(
-      sourceAccount.address,
-      destinationAccount.address,
-      keyPair.publicKey,
-      amount * Math.pow(10, 9),
-  ))
-
-  try {
-    const latestBlockHash = await connection.getLatestBlockhash('confirmed');
-    tx.recentBlockhash = await latestBlockHash.blockhash;    
-    const signature = await sendAndConfirmTransaction(connection,tx,[keyPair]);
-    console.log(
-        '\x1b[32m', //Green Text
-        `   Transaction Success!🎉`,
-        `\n    https://explorer.solana.com/tx/${signature}?cluster=devnet`
-    );
-
-    return signature;
-  } catch (e) {
-    console.log('Transaction Error: ', e)
-    return null;
+async function getOdds(previousOdds: number | null, hadWinner: boolean) {
+  if (!previousOdds || previousOdds == 100 || hadWinner) {
+    return 10;
   }
+
+  return previousOdds + 10;
+  
 }
 
 
