@@ -84,4 +84,12 @@ export class SolanaService {
       return null;
     }
   }
+
+  // async getRewards(epoch: number) {
+  //   const rewards = await this.connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS!)], epoch); 
+
+  //   if (rewards && rewards[0]) {
+  //     return rewards[0].amount / (10 ** 9)
+  //   }
+  // }
 }

@@ -12,17 +12,11 @@ export class JitoService {
 
       const reward = response.data.find((r: JitoReward) => Number(r.epoch) == epoch)!;
 
-      console.log(reward);
+      console.log('Jito: ', reward);
       return (reward.mev_rewards / (10 ** 9)) * (Number(reward.mev_commission_bps) / 10000);
 
     } catch (error) {
-      console.log(error);
+      console.log('Jito API: ', error);
     }
   }
 }
-
-// const rewards = await connection.getInflationReward([new PublicKey(process.env.VALIDATOR_ADDRESS!)], epoch); 
-
-// if (rewards && rewards[0]) {
-//   return rewards[0].amount / (10 ** 9)
-// }
