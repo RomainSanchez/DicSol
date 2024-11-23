@@ -10,7 +10,7 @@ export class JitoService {
         `${this.baseUrl}/validators/${process.env.VALIDATOR_ADDRESS!}`
       );
 
-      const reward = response.data.find(r => Number(r.epoch) == epoch)!;
+      const reward = response.data.find((r: JitoReward) => Number(r.epoch) == epoch)!;
 
       console.log(reward);
       return (reward.mev_rewards / (10 ** 9)) * (Number(reward.mev_commission_bps) / 10000);
