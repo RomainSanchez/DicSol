@@ -20,7 +20,6 @@ export class MongoService {
   }
 
   async updateRound(round: any) {
-    console.log('UPDATE ROUND')
     round.updatedAt = new Date();
   
     await this.rounds.updateOne({ _id: round._id }, {$set: round}) 

@@ -1,7 +1,7 @@
-import { Connection, EpochInfo, Keypair, Transaction, sendAndConfirmTransaction, PublicKey, GetProgramAccountsResponse } from "@solana/web3.js";
-import { Epoch, Player } from "../types";
-import { TOKEN_PROGRAM_ID, AccountLayout, createTransferInstruction, getAccount, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import bs58 from 'bs58';
+import { Connection, EpochInfo, Keypair, Transaction, sendAndConfirmTransaction, PublicKey, GetProgramAccountsResponse } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID, createTransferInstruction, getAccount, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { Epoch } from "../types";
 
 export class SolanaService {
   private connection: Connection;
@@ -43,7 +43,6 @@ export class SolanaService {
   }
 
   async sendTransaction(recipient: string, amount: number): Promise<string | null> {
-    console.log('SEND WINNINGS')
     const secret = bs58.decode(process.env.SECRET!)
     const keyPair = Keypair.fromSecretKey(new Uint8Array(Array.from(secret)));
     
@@ -74,7 +73,10 @@ export class SolanaService {
       tx.recentBlockhash = await latestBlockHash.blockhash;    
       
       const signature = await sendAndConfirmTransaction(this.connection,tx,[keyPair]);
-      console.log(`https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+      console.log( 
+        '\x1b[32m', //Green Text
+        `\n    https://explorer.solana.com/tx/${signature}`
+      );
   
       return signature;
     } catch (e) {
@@ -82,5 +84,4 @@ export class SolanaService {
       return null;
     }
   }
-
 }

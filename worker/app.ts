@@ -1,12 +1,12 @@
-import { AccountLayout } from "@solana/spl-token";
 import schedule from 'node-schedule';
+import { AccountLayout } from "@solana/spl-token";
 import { Round, Epoch, Player, Ticket } from "./types"
-import { RewardsService } from "./services/rewards";
+import { JitoService } from "./services/jito";
 import { SolanaService } from "./services/solana";
 import { MongoService } from "./services/mongo";
 
 const mongoService = new MongoService();
-const rewardsService = new RewardsService();
+const jitoService = new JitoService();
 const solanaService = new SolanaService();
 
 async function run() {
@@ -23,7 +23,6 @@ async function run() {
   }
 
   if (!round) {
-
     await startRound(epoch.number, players, previousRound)
 
     round = await mongoService.getRound(epoch.number)
@@ -40,14 +39,14 @@ async function run() {
     });
 
     round.players = await updateScores(epoch.progress, round.players);
-
+    console.log('UPDATE ROUND ', round.epoch)
     mongoService.updateRound(round);
   }
 }
 
 async function startRound(epoch: number, players: Array<Player>, previousRound: any) {
-  console.log('CREATE ROUND')
-  const hadWinner = previousRound && previousRound.tx ? true: false
+  console.log('CREATE ROUND ', epoch)
+  const hadWinner = previousRound && previousRound.winner;
 
   const pot = await getJackpot(epoch - 1, hadWinner ? null : previousRound?.pot);
   const odds = await getOdds(previousRound?.odds, hadWinner);
@@ -68,19 +67,18 @@ async function startRound(epoch: number, players: Array<Player>, previousRound: 
 }
 
 async function endRound(round: any) {
-  if(!round.winner) {
-    round.winner = pullWinner(round.players, round.pot, round.odds);
+  if(!round.winner && !round.ended) {
+    console.log('PULL WINNER ', round.epoch)
+    round.winner = pullWinner(round.players, round.odds);
+    round.ended = true;
   }
 
-  if(round.winner) {
-    if(!round.tx) {
-      round.tx = await solanaService.sendTransaction(round.winner, round.pot);
-
-      round.ended = true;
-
-      await mongoService.updateRound(round);
-    }
+  if(!round.tx && round.winner) {
+    console.log('SEND WINNINGS ', round.epoch);
+    round.tx = await solanaService.sendTransaction(round.winner, round.pot);
   }
+
+  await mongoService.updateRound(round);
 }
 
 async function updateScores(epochProgress: number, players: Player[]) {
@@ -107,24 +105,33 @@ async function updateScores(epochProgress: number, players: Player[]) {
   return players;
 }
 
-function pullWinner(players: Player[], pot: number, odds: number): string|null {
-  console.log('PULL WINNER')
+function pullWinner(players: Player[], odds: number): string|null {
   const eligiblePlayers = players.filter((player: Player) => player.score > 50);
   const tickets: Ticket [] = getTickets(eligiblePlayers);
 
   console.log(`${tickets.length} tickets`)
 
   const getRandomNumber = (min: number, max: number) => {
-     return Math.round(Math.random() * (max - min) + min);
-  }
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  };
 
-  const winningTicket = tickets[getRandomNumber(0, tickets.length -1)];
-  console.log('Ticket: ', winningTicket);  
-  const hitsJackpot = getRandomNumber(0, 100) <= odds;
-  console.log(`JACKPOT: ${hitsJackpot}`);
+  if(tickets.length > 0) {
+    const winningTicket = tickets[getRandomNumber(0, tickets.length -1)];
 
-  if(hitsJackpot) {
-    return winningTicket.owner;
+    console.log('Ticket: ', winningTicket); 
+    console.log(`Odds: ${odds}`);
+
+    const randomNumber =getRandomNumber(0, 100);
+
+    console.log(`Number: ${randomNumber}`);
+
+    const hitsJackpot = randomNumber <= odds;
+    
+    console.log(`JACKPOT: ${hitsJackpot}`);
+
+    if(hitsJackpot) {
+      return winningTicket.owner;
+    }
   }
 
   return null
@@ -137,12 +144,12 @@ function getTickets(players: Player[]): Ticket[] {
   players.forEach((player: Player) => {
     let ticketAmount = player.score;
 
-    if(player.balance > 10) {
-      ticketAmount = ticketAmount * 1.5; 
+    if (player.balance > 50) {
+      ticketAmount = ticketAmount * 3
     } else if (player.balance > 20) {
       ticketAmount = ticketAmount * 2
-    } else if (player.balance > 50) {
-      ticketAmount = ticketAmount * 3
+    } else if(player.balance > 10) {
+      ticketAmount = ticketAmount * 1.5; 
     }
 
     for (let i = 0; i < ticketAmount; i++) {
@@ -161,7 +168,7 @@ function getTickets(players: Player[]): Ticket[] {
 }
 
 async function getPlayers(epoch: Epoch): Promise<Player[]> {
-  console.log('GET PLAYERS')
+  console.log('GET PLAYERS ', epoch.number);
 
   const excludedPlayers = process.env.EXCLUDE!.split(' ');
   const accounts =  await solanaService.getTokenAccounts(epoch)
@@ -188,7 +195,7 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
 }
 
 async function getJackpot(epoch: number, previousPot: number|null ): Promise<number> {
-  const rewards = await rewardsService.getRewards(epoch);
+  const rewards = await jitoService.getRewards(epoch);
   
   let pot: number = (rewards / 3.5)
 
@@ -216,9 +223,6 @@ async function getOdds(previousOdds: number | null, hadWinner: boolean) {
   
 }
 
-
-// every hour '0 * * * *'
-// every 30 seconds '*/30 * * * * *'
 const job = schedule.scheduleJob(process.env.CRON!, async () => {
   run()
 });
