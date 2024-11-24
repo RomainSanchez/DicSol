@@ -94,7 +94,7 @@ onErrorCaptured((err) => {
       <!-- Search Bar -->
       <TableSearch
         class="mb-6"
-        placeholder="Search rounds..."
+        placeholder=""
         @search="handleSearch"
       />
 
