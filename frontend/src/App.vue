@@ -17,8 +17,6 @@ const jup = () => {
       // initialAmount: "1069000000",
     },
   });
-
-  window.scrollTo({top: document.body.scrollHeight})
 }
 
 const closeJup = () => {
@@ -82,7 +80,7 @@ const closeJup = () => {
 
 @media (max-width: 600px) {
   #jupiter-terminal-instance div.fixed {
-    margin-top : 9%;
+    margin-top : 66px;
   }
 
   #jup {
