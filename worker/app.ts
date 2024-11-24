@@ -109,8 +109,7 @@ async function updateScores(epochProgress: number, players: Player[]) {
 function pullWinner(players: Player[], odds: number): string|null {
   const eligiblePlayers = players.filter((player: Player) => 
     player.score > 50 &&
-    !excludedPlayers.includes(player.address) && 
-    !excludedPlayers.includes(player.wallet)
+    !(excludedPlayers.includes(player.address) || excludedPlayers.includes(player.wallet))
   );
   const tickets: Ticket [] = getTickets(eligiblePlayers);
 
@@ -193,7 +192,7 @@ async function getPlayers(epoch: Epoch): Promise<Player[]> {
 
       return player
     })
-    .filter((player: Player) => player.balance > 0 && !excludedPlayers.includes(player.address) && !excludedPlayers.includes(player.wallet));
+    .filter((player: Player) => player.balance > 0 && !(excludedPlayers.includes(player.address) || excludedPlayers.includes(player.wallet)));
 
   return players;
 }
