@@ -8,6 +8,7 @@ import { MongoService } from "./services/mongo";
 const mongoService = new MongoService();
 const jitoService = new JitoService();
 const solanaService = new SolanaService();
+const excludedPlayers = process.env.EXCLUDE!.split(' ');
 
 async function run() {
   const epoch: Epoch = await solanaService.getCurrentEpoch()
@@ -106,7 +107,11 @@ async function updateScores(epochProgress: number, players: Player[]) {
 }
 
 function pullWinner(players: Player[], odds: number): string|null {
-  const eligiblePlayers = players.filter((player: Player) => player.score > 50);
+  const eligiblePlayers = players.filter((player: Player) => 
+    player.score > 50 &&
+    !excludedPlayers.includes(player.address) && 
+    !excludedPlayers.includes(player.wallet)
+  );
   const tickets: Ticket [] = getTickets(eligiblePlayers);
 
   console.log(`${tickets.length} tickets`)
@@ -170,7 +175,6 @@ function getTickets(players: Player[]): Ticket[] {
 async function getPlayers(epoch: Epoch): Promise<Player[]> {
   console.log('GET PLAYERS ', epoch.number);
 
-  const excludedPlayers = process.env.EXCLUDE!.split(' ');
   const accounts =  await solanaService.getTokenAccounts(epoch)
 
   const players = accounts
