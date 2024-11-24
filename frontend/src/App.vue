@@ -39,7 +39,7 @@ const jup = () => {
               </span>
               <span class="text-h4 font-weight-bold ms-2 d-none d-md-block">Lottery</span>
           </v-col>
-          <v-col class="d-flex align-center justify-end">
+          <v-col id="jup" class="d-flex align-center justify-end">
             <v-btn @click="jup()" class="bg-yellow">Buy dicSOL</v-btn>
           </v-col>
         </v-row>
@@ -76,6 +76,10 @@ const jup = () => {
 @media (max-width: 600px) {
   #jupiter-terminal-instance div.fixed {
     margin-top : 9%;
+  }
+
+  #jup {
+    justify-content: center !important;
   }
 }
 </style>
