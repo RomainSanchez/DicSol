@@ -70,17 +70,27 @@ export class SolanaService {
     try {
       const latestBlockHash = await this.connection.getLatestBlockhash('confirmed');
 
-      tx.recentBlockhash = await latestBlockHash.blockhash;    
+      tx.recentBlockhash = latestBlockHash.blockhash;
+      tx.lastValidBlockHeight = latestBlockHash.lastValidBlockHeight;
       
       const signature = await sendAndConfirmTransaction(this.connection,tx,[keyPair]);
       console.log( 
         '\x1b[32m', //Green Text
         `\n    https://explorer.solana.com/tx/${signature}`
       );
-  
+
       return signature;
-    } catch (e) {
-      console.log('Transaction Error: ', e)
+    } catch (e: any) {
+      console.log('Tx ERROR: ', e);
+
+      if(e.hasOwnProperty('signature') && e.signature.length > 1) {
+        await new Promise(resolve => setTimeout(resolve, 60000));
+        const transaction = await this.connection.getParsedTransaction(e.signature, 'finalized');
+
+        if(transaction && (transaction.meta as any)?.status?.hasOwnProperty('Ok')) {
+          return e.signature;
+        }
+      }
       return null;
     }
   }
