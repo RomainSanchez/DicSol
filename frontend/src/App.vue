@@ -2,9 +2,9 @@
 import LotteryRounds from './components/LotteryRounds.vue'
 
 declare global {
-    interface Window { 
-         Jupiter: any
-    }
+  interface Window { 
+    Jupiter: any
+  }
 }
 const jup = () => {
   window.Jupiter.init({
@@ -17,12 +17,19 @@ const jup = () => {
       // initialAmount: "1069000000",
     },
   });
+
+  window.scrollTo({top: document.body.scrollHeight})
 }
+
+const closeJup = () => {
+  window.Jupiter.close();
+}
+
 </script>
 
 <template>
   <v-app>
-    <v-app-bar color="surface" elevation="2">
+    <v-app-bar color="surface" elevation="2" @click="closeJup()">
       <v-container class="px-0">
         <v-row class="d-flex align-center">
           <v-col>
@@ -40,7 +47,7 @@ const jup = () => {
               <span class="text-h4 font-weight-bold ms-2 d-none d-md-block">Lottery</span>
           </v-col>
           <v-col id="jup" class="d-flex align-center justify-end">
-            <v-btn @click="jup()" class="bg-yellow">Buy dicSOL</v-btn>
+            <v-btn @click.stop="jup()" class="bg-yellow">Buy dicSOL</v-btn>
           </v-col>
         </v-row>
       </v-container>
