@@ -18,7 +18,7 @@ const props = defineProps<{
 }>()
 
 const activePlayers = computed(() => 
-  props.round.players.filter(p => p.exitedAt === 0)
+  props.round.players
 )
 </script>
 

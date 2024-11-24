@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { fetchRounds } from '../api/rounds'
-import type { Round } from '../types/lottery'
+import type { Player, Round } from '../types/lottery'
 import RoundsTable from './RoundsTable.vue'
 import ErrorBoundary from './ErrorBoundary.vue'
 import LoadingSpinner from './LoadingSpinner.vue'
@@ -12,7 +12,13 @@ const error = ref('')
 
 const loadRounds = async () => {
   try {
-    rounds.value = await fetchRounds()
+    const roundList = await fetchRounds()
+    roundList.forEach((round: Round) => {
+      round.players = round.players.filter((player: Player) => player.score > 51)
+    })
+
+    rounds.value = roundList
+
   } catch (e: any) {
     error.value = e.message || 'Failed to load lottery rounds'
   } finally {
