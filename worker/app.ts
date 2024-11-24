@@ -32,7 +32,9 @@ async function run() {
       const existingPlayer = round?.players.find((player: Player) => player.address === newPlayer.address);
   
       if (existingPlayer) {
+        if(existingPlayer.exitedAt === 0) {
           existingPlayer.oldBalance = existingPlayer.balance;
+        }
           existingPlayer.balance = newPlayer.balance;
       } else {
           round?.players.push(newPlayer);
