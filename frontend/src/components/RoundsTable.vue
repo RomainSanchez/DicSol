@@ -154,7 +154,7 @@ onErrorCaptured((err) => {
               </td>
               <td>
                 <div class="d-flex align-center justify-center">
-                  <span class="text-medium-emphasis">{{ formatDate(item.createdAt) }}</span>
+                  <span class="text-medium-emphasis">{{ item.ended ? formatDate(item.createdAt) : '-' }}</span>
                 </div>
               </td>
             </tr>
