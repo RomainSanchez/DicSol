@@ -9,6 +9,7 @@ const displayAmount = ref('0.00')
 const isAnimating = ref(false)
 
 const animateToNumber = async (target: number) => {
+  target = Math.floor(target * 100) / 100
   isAnimating.value = true
   const duration = 2000
   const steps = 30
@@ -23,19 +24,13 @@ const animateToNumber = async (target: number) => {
     const eased = 1 - Math.pow(1 - progress, 3)
     const current = start + (diff * eased)
     
-    displayAmount.value = current.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })
+    displayAmount.value = current.toFixed(2)
     
     await new Promise(resolve => setTimeout(resolve, stepDuration))
   }
   
   // Ensure final value is exact
-  displayAmount.value = target.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
+  displayAmount.value = target.toFixed(2)
   isAnimating.value = false
 }
 

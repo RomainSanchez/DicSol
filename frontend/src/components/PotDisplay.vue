@@ -5,10 +5,8 @@ defineProps<{
 }>()
 
 const formatAmount = (amount: number): string => {
-  return amount.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
+  amount = Math.floor(amount * 100) / 100
+  return amount.toFixed(2)
 }
 </script>
 
