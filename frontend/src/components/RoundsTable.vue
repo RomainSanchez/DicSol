@@ -228,7 +228,6 @@ onErrorCaptured((err) => {
 
 :deep(.v-data-table-header th) {
   color: var(--text-secondary) !important;
-  font-size: 0.875rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.5px;
   text-transform: none;
@@ -294,6 +293,10 @@ onErrorCaptured((err) => {
 @media (max-width: 600px) {
   .rounds-table {
     padding: 0 0.5rem;
+  }
+
+  table .details-row td {
+    padding: 0 0 0 0!important;
   }
 }
 </style>

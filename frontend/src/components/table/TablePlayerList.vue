@@ -96,7 +96,6 @@ const getSortedPlayers = computed(() => {
 
 .wallet {
   font-family: 'Roboto Mono', monospace;
-  font-size: 0.875rem;
   letter-spacing: 0.5px;
 }
 

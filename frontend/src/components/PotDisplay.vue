@@ -11,7 +11,7 @@ const formatAmount = (amount: number): string => {
 </script>
 
 <template>
-  <span class="d-inline-flex align-center">
+  <span class="number d-inline-flex align-center">
     {{ formatAmount(amount) }}
     <v-img
       src="/daoo-logo.png"
@@ -24,6 +24,10 @@ const formatAmount = (amount: number): string => {
 </template>
 
 <style scoped>
+.number {
+  font-size: 1.1rem;
+}
+
 .currency-logo {
   display: inline-block;
   transition: transform var(--transition-normal);
