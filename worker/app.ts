@@ -4,7 +4,9 @@ import { Round, Epoch, Player, Ticket } from "./types"
 import { JitoService } from "./services/jito";
 import { SolanaService } from "./services/solana";
 import { MongoService } from "./services/mongo";
+import { TwitterService } from './services/twitter';
 
+const twitterService = new TwitterService();
 const mongoService = new MongoService();
 const jitoService = new JitoService();
 const solanaService = new SolanaService();
@@ -79,6 +81,7 @@ async function endRound(round: any) {
   if(!round.tx && round.winner) {
     console.log('SEND WINNINGS ', round.epoch);
     round.tx = await solanaService.sendTransaction(round.winner, round.pot);
+    await twitterService.postGifTweet(round.pot.toFixed(2)).then();
   }
 
   await mongoService.updateRound(round);
@@ -231,3 +234,5 @@ async function getOdds(previousOdds: number | null, hadWinner: boolean) {
 const job = schedule.scheduleJob(process.env.CRON!, async () => {
   run()
 });
+
+
