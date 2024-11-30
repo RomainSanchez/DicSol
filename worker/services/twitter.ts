@@ -33,10 +33,6 @@ export class TwitterService {
 
     const number = this.getRandomNumber(1, 6);
 
-    const imageBuffer = await fs.readFile(`./assets/daa${number}.gif`);
-    
-    const mediaId = await this.client.v1.uploadMedia(imageBuffer, { mimeType: 'image/gif' });
-
     const text = 
     	`Fuck, OK!
 
@@ -45,15 +41,23 @@ export class TwitterService {
 			Get dicSOL LST for your free tickets to the lottery at https://dicsol.xyz
 			`
     ;
-    const tweet = {
-      text,
-      media: { media_ids: [mediaId] },
-    };
 
+		try{
+			const imageBuffer = await fs.readFile(`./assets/daa${number}.gif`);
+			const mediaId = await this.client.v1.uploadMedia(imageBuffer, { mimeType: 'image/gif' });
 
-    const t = await this.postTweet(tweet);
+			const tweet = {
+				text,
+				media: { media_ids: [mediaId] },
+			};
 
-    console.log(t)
+			const t = await this.postTweet(tweet);
+
+			console.log(t)
+		} catch(e) {
+			console.log('Twitter error: ', e)
+		}
+ 
 
     // return pRetry(postTweet, {
     //   retries: 3,
