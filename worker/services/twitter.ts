@@ -2,7 +2,6 @@ import { TwitterApi } from 'twitter-api-v2';
 import { RateLimiter } from 'limiter';
 // import pRetry from 'p-retry';
 import fs from 'fs/promises';
-import path from 'path';
 
 export class TwitterService {
   private client: TwitterApi;

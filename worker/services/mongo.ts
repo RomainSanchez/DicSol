@@ -20,9 +20,11 @@ export class MongoService {
   }
 
   async updateRound(round: any) {
-    round.updatedAt = new Date();
+    if(!round.ended) {
+      round.updatedAt = new Date();
+    }
   
-    await this.rounds.updateOne({ _id: round._id }, {$set: round}) 
+    await this.rounds.updateOne({ _id: round._id }, {$set: round})
   }
 
 }
