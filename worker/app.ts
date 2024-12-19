@@ -76,12 +76,12 @@ async function endRound(round: any) {
     console.log('PULL WINNER ', round.epoch)
     round.winner = pullWinner(round.players, round.odds);
     round.ended = true;
+    await twitterService.postGifTweet(round.pot.toFixed(2)).then();
   }
 
   if(!round.tx && round.winner) {
     console.log('SEND WINNINGS ', round.epoch);
     round.tx = await solanaService.sendTransaction(round.winner, round.pot);
-    await twitterService.postGifTweet(round.pot.toFixed(2)).then();
   }
 
   await mongoService.updateRound(round);
@@ -154,11 +154,13 @@ function getTickets(players: Player[]): Ticket[] {
     let ticketAmount = player.score;
 
     if (player.balance > 50) {
-      ticketAmount = ticketAmount * 3
+      ticketAmount = ticketAmount * 6
     } else if (player.balance > 20) {
-      ticketAmount = ticketAmount * 2
+      ticketAmount = ticketAmount * 4
     } else if(player.balance > 10) {
-      ticketAmount = ticketAmount * 1.5; 
+      ticketAmount = ticketAmount * 3; 
+    } else if(player.balance > 2) {
+      ticketAmount = ticketAmount * 2;
     }
 
     for (let i = 0; i < ticketAmount; i++) {
