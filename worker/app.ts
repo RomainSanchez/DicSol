@@ -76,7 +76,10 @@ async function endRound(round: any) {
     console.log('PULL WINNER ', round.epoch)
     round.winner = pullWinner(round.players, round.odds);
     round.ended = true;
-    await twitterService.postGifTweet(round.pot.toFixed(2)).then();
+
+    if(round.winner) {
+      await twitterService.postGifTweet(round.pot.toFixed(2)).then();
+    }
   }
 
   if(!round.tx && round.winner) {
@@ -127,7 +130,6 @@ function pullWinner(players: Player[], odds: number): string|null {
   if(tickets.length > 0) {
     const winningTicket = tickets[getRandomNumber(0, tickets.length -1)];
 
-    console.log('Ticket: ', winningTicket); 
     console.log(`Odds: ${odds}`);
 
     const randomNumber =getRandomNumber(0, 100);
@@ -135,6 +137,8 @@ function pullWinner(players: Player[], odds: number): string|null {
     console.log(`Number: ${randomNumber}`);
 
     const hitsJackpot = randomNumber <= odds;
+
+    console.log('Ticket: ', winningTicket); 
     
     console.log(`JACKPOT: ${hitsJackpot}`);
 
