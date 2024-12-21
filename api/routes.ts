@@ -14,7 +14,7 @@ router.get('/rounds', async (req: Request, res: Response) => {
         const db = client.db("lottos");
         const collection = db.collection("rounds");
 
-        const rounds = await collection.find({}).sort({_id:1}).limit(20).toArray();
+        const rounds = await collection.find({}).sort({_id:1}).toArray();
 
         res.status(200).json(rounds)
     } catch (error: any) {
